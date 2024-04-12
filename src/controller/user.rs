@@ -19,8 +19,8 @@ pub mod user {
         HttpResponse::Ok().body(format!("GET User detail: {}", path.into_inner().0))
     }
 
-    pub fn post_one(path: web::Path<(String,)>) -> HttpResponse {
-        HttpResponse::Ok().body(format!("POST User detail: {}", path.into_inner().0))
+    pub fn post_one() -> HttpResponse {
+        HttpResponse::Ok().body(format!("POST User detail: {}", "New User"))
     }
 }
 
