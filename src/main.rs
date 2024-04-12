@@ -4,6 +4,7 @@ use lib::{
     routes::{app_routes, root_routes, users_routes},
     utils,
 };
+use libsql::Builder;
 
 // #[rustfmt::skip]
 #[actix_web::main]
@@ -12,8 +13,11 @@ async fn main() -> std::io::Result<()> {
         std::env::set_var("RUST_LOG", "actix_web=info");
     }
 
+    let db = Builder::new_local("local.db").build().await.unwrap();
+    let conn_db = db.connect().unwrap();
+
     // Load environment variables from .env file
-    dotenv().ok();
+    dotenv().expect(".env file not found");
     env_logger::init();
     let port: u16 = utils::constants::PORT.clone();
     let address: String = utils::constants::ADDRESS.clone();

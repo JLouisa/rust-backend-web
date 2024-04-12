@@ -20,7 +20,7 @@ fn set_port() -> u16 {
     dotenv::dotenv().ok();
     let port: u16 = match std::env::var("PORT") {
         Ok(the_port) => the_port.parse::<u16>().expect("PORT should be a number"),
-        Err(_) => 8080,
+        Err(_) => 3000,
     };
     return port;
 }
