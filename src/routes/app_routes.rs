@@ -1,4 +1,3 @@
-// use crate::*;
 use actix_web::*;
 
 // this function could be located in a different module

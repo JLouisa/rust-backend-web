@@ -2,7 +2,7 @@
 
 diesel::table! {
     users (id) {
-        id -> Int4,
+        id -> Text,
         username -> Text,
         hashed_password -> Text,
         created_at -> Timestamp,

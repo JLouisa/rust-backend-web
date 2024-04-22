@@ -1,5 +1,19 @@
+use crate::db::database;
+use crate::domain::user_domain;
+use crate::schema::users::dsl::*;
+use crate::{
+    db::db_setup::establish_connection,
+    models::{self, user_model::User},
+};
+
+use actix_web::*;
+use diesel::prelude::*;
+use diesel::result::Error as DieselError;
+use diesel::{delete, insert_into, update};
+use serde::{Deserialize, Serialize};
+
 pub mod index {
-    use actix_web::*;
+    use super::*;
 
     pub fn get_homepage() -> impl Responder {
         HttpResponse::Ok().body("Homepage")
@@ -10,44 +24,111 @@ pub mod index {
 }
 
 pub mod user {
-    use actix_web::*;
+    use super::*;
 
-    pub fn get_all() -> impl Responder {
-        HttpResponse::Ok().body("GET All Users")
+    pub fn get_all_users(connection: &mut PgConnection) -> impl Responder {
+        let the_users: Result<Vec<User>, DieselError> =
+            database::users_db::get_all_users(connection);
+
+        match the_users {
+            Ok(content) => {
+                let all_users_client: Vec<user_domain::UserClient> = content
+                    .iter()
+                    .map(|user| user_domain::User::client(user))
+                    .collect();
+
+                let all_users = user_domain::AllUserClient {
+                    users: all_users_client,
+                };
+
+                HttpResponse::Ok().json(all_users)
+            }
+            Err(err) => {
+                eprintln!("Error loading users: {:?}", err);
+                HttpResponse::InternalServerError().body("Error loading users")
+            }
+        }
     }
-    pub fn get_one(path: web::Path<(String,)>) -> HttpResponse {
+
+    pub fn get_one_user(path: web::Path<(String,)>) -> HttpResponse {
         HttpResponse::Ok().body(format!("GET User detail: {}", path.into_inner().0))
     }
 
-    pub fn post_one() -> HttpResponse {
-        HttpResponse::Ok().body(format!("POST User detail: {}", "New User"))
+    pub fn post_one_user(user: models::user_model::User) -> HttpResponse {
+        let connection = &mut establish_connection();
+
+        let posted_user = insert_into(users).values(&user).execute(connection);
+
+        match posted_user {
+            Ok(content) => {
+                println!("User posted: {:?}", content);
+                let user = user_domain::User::client(&user);
+                HttpResponse::Ok().json(user)
+            }
+            Err(e) => HttpResponse::BadRequest().body(format!("Error: {:?}", e)),
+        }
+    }
+
+    pub fn put_one_user(user: user_domain::UserClient) -> HttpResponse {
+        // let connection = &mut establish_connection();
+        let connection: &mut PgConnection = &mut establish_connection();
+
+        let posted_user = update(users.find(&user.id))
+            .set(username.eq(&user.username))
+            .returning(User::as_returning())
+            .get_result(connection);
+
+        match posted_user {
+            Ok(content) => {
+                println!("User updated: {:?}", content);
+                HttpResponse::Ok().json(content)
+            }
+            Err(e) => HttpResponse::BadRequest().body(format!("Error: {:?}", e)),
+        }
+    }
+
+    pub fn delete_one_user(user_id: web::Path<(String,)>) -> HttpResponse {
+        let connection = &mut establish_connection();
+
+        let posted_user = delete(users.find(&user_id.into_inner().0))
+            .returning(User::as_returning())
+            .get_result(connection);
+
+        match posted_user {
+            Ok(content) => {
+                println!("User deleted: {:?}", content);
+                let user = user_domain::User::client(&content);
+                HttpResponse::Ok().json(user)
+            }
+            Err(e) => HttpResponse::BadRequest().body(format!("Error: {:?}", e)),
+        }
     }
 }
 
 pub mod json {
-    use actix_web::*;
-    use serde::{Deserialize, Serialize};
+    use super::*;
 
     #[derive(Serialize, Deserialize, Debug)]
-    pub struct User {
-        id: usize,
+    pub struct User2 {
+        id2: usize,
         name: String,
     }
-    impl User {
-        fn new(id: usize, name: String) -> Self {
-            Self { id, name }
+
+    impl User2 {
+        fn new(id2: usize, name: String) -> Self {
+            Self { id2, name }
         }
-    }
 
-    pub fn json_get() -> impl Responder {
-        let user = User::new(1, String::from("Eve"));
+        pub fn json_get() -> impl Responder {
+            let user = User2::new(1, String::from("Eve"));
 
-        // Serde serialized
-        // let serialized_user = serde_json::to_string(&user).expect("Failed to serialize");
-        // HttpResponse::Ok().body(serialized_user)
+            // Serde serialized
+            // let serialized_user = serde_json::to_string(&user).expect("Failed to serialize");
+            // HttpResponse::Ok().body(serialized_user)
 
-        // Actix shorthand
-        HttpResponse::Ok().json(user)
+            // Actix shorthand
+            HttpResponse::Ok().json(user)
+        }
     }
 
     // pub fn json_post(req_body: String) -> impl Responder {
@@ -66,7 +147,7 @@ pub mod json {
     // }
 
     // Actix shorthand
-    pub fn json_post(item: web::Json<User>) -> impl Responder {
+    pub fn json_post(item: web::Json<User2>) -> impl Responder {
         HttpResponse::Ok().json(item.0)
     }
 }

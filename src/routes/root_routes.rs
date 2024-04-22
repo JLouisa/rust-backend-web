@@ -1,4 +1,4 @@
-// use crate::*;
+use crate::{controllers, view};
 use actix_web::*;
 
 // this function could be located in a different module
@@ -8,20 +8,28 @@ pub fn root_config(config: &mut web::ServiceConfig) {
             .service(root::index)
             .service(root::echo)
             .service(root::hello)
-            .service(root::json_get)
             .service(root::json_post),
     );
 }
 
+// Root Routes Handlers (Controller)
 pub mod root {
-    // use crate::*;
-    use crate::controllers;
-    use actix_web::*;
+    use super::*;
 
-    //Root
-    #[get("")]
+    // Index
+    #[get("/")]
     pub async fn index() -> impl Responder {
-        controllers::user::index::get_homepage()
+        let mut context = tera::Context::new();
+        context.insert("msg_from_rust", "Msg from Rust server");
+        context.insert("ping_pong", "ping");
+
+        match view::setup::TEMPLATES.render("index/index.html", &context) {
+            Ok(content) => return HttpResponse::Ok().body(content),
+            Err(err) => {
+                eprintln!("Error rendering index page: {}", err);
+                return HttpResponse::InternalServerError().finish(); // Return 500 Internal Server Error
+            }
+        };
     }
 
     //Hello
@@ -36,14 +44,8 @@ pub mod root {
         HttpResponse::Ok().body(req_body)
     }
 
-    //GET JSON
-    #[get("/json")]
-    pub async fn json_get() -> impl Responder {
-        controllers::user::json::json_get()
-    }
-
     //POST JSON
-    type TheUser = controllers::user::json::User;
+    type TheUser = controllers::user::json::User2;
     #[post("/json")]
     pub async fn json_post(item: web::Json<TheUser>) -> impl Responder {
         controllers::user::json::json_post(item)

@@ -1,22 +1,23 @@
-use actix_web::{get, middleware::Logger, App, HttpResponse, HttpServer, Responder};
+use actix_web::{middleware::Logger, App, HttpServer};
+use diesel::PgConnection;
 use dotenv::dotenv;
 use lib::{
+    db::db_setup::establish_connection,
     routes::{app_routes, root_routes, ui_routes, users_routes},
-    utils, view,
+    utils,
 };
 
-// use libsql::Builder;
-
-// #[rustfmt::skip]
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     if std::env::var_os("RUST_LOG").is_none() {
         std::env::set_var("RUST_LOG", "actix_web=info");
     }
 
-    // Setup Database
-    // let db = Builder::new_local("local.db").build().await.unwrap();
-    // let conn_db = db.connect().unwrap();
+    // Setup Database Connection
+    let connection: &mut PgConnection = &mut establish_connection();
+    let pool = r2d2::Pool::builder()
+        .build(manager)
+        .expect("database URL should be valid path to SQLite DB file");
 
     // Load environment variables from .env file
     dotenv().expect(".env file not found");
@@ -24,31 +25,16 @@ async fn main() -> std::io::Result<()> {
     let port: u16 = utils::constants::PORT.clone();
     let address: String = utils::constants::ADDRESS.clone();
 
-    // Index
-    #[get("/")]
-    pub async fn index() -> impl Responder {
-        let mut context = tera::Context::new();
-        context.insert("msg_from_rust", "Msg from Rust server");
-        context.insert("ping_pong", "ping");
-
-        match view::setup::TEMPLATES.render("index/index.html", &context) {
-            Ok(content) => return HttpResponse::Ok().body(content),
-            Err(err) => {
-                eprintln!("Error rendering index page: {}", err);
-                return HttpResponse::InternalServerError().finish(); // Return 500 Internal Server Error
-            }
-        };
-    }
-
     // Start the server
     HttpServer::new(|| {
         App::new()
-            .service(index)
             .wrap(Logger::default())
+            .app_data(web::Data::new(pool.clone()))
             .configure(ui_routes::app_config)
             .configure(app_routes::app_config)
             .configure(users_routes::users_config)
             .configure(root_routes::root_config)
+            .service(root_routes::root::index)
     })
     .bind((address, port))?
     .run()

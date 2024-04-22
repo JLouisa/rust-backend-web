@@ -9,7 +9,7 @@ pub fn app_config(config: &mut web::ServiceConfig) {
     );
 }
 
-//Index
+// Index Routes Handlers (Controller)
 pub mod index {
     use crate::controllers::ui_controller::index;
     use actix_web::*;
