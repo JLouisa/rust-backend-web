@@ -1,0 +1,15 @@
+{% extends 'layout.html' %} {% block content %}
+
+<h2>Index</h2>
+<p>{{ msg_from_rust }}</p>
+
+<button
+  id="hello"
+  hx-get="ui/index/hello"
+  hx-swap="outerHTML"
+  hx-target="#hello"
+>
+  Say Hello
+</button>
+
+{% endblock %}

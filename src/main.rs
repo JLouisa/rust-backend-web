@@ -1,10 +1,11 @@
-use actix_web::{middleware::Logger, App, HttpServer};
+use actix_web::{get, middleware::Logger, App, HttpResponse, HttpServer, Responder};
 use dotenv::dotenv;
 use lib::{
-    routes::{app_routes, root_routes, users_routes},
-    utils,
+    routes::{app_routes, root_routes, ui_routes, users_routes},
+    schema, utils, view,
 };
-use libsql::Builder;
+
+// use libsql::Builder;
 
 // #[rustfmt::skip]
 #[actix_web::main]
@@ -13,8 +14,9 @@ async fn main() -> std::io::Result<()> {
         std::env::set_var("RUST_LOG", "actix_web=info");
     }
 
-    let db = Builder::new_local("local.db").build().await.unwrap();
-    let conn_db = db.connect().unwrap();
+    // Setup Database
+    // let db = Builder::new_local("local.db").build().await.unwrap();
+    // let conn_db = db.connect().unwrap();
 
     // Load environment variables from .env file
     dotenv().expect(".env file not found");
@@ -22,10 +24,24 @@ async fn main() -> std::io::Result<()> {
     let port: u16 = utils::constants::PORT.clone();
     let address: String = utils::constants::ADDRESS.clone();
 
+    // Index
+    #[get("/")]
+    pub async fn index() -> impl Responder {
+        let mut context = tera::Context::new();
+        context.insert("msg_from_rust", "Msg from Rust server");
+        let page_content = view::setup::TEMPLATES
+            .render("index/index.html", &context)
+            .expect("Couldn't render index page");
+
+        HttpResponse::Ok().body(page_content)
+    }
+
     // Start the server
     HttpServer::new(|| {
         App::new()
+            .service(index)
             .wrap(Logger::default())
+            .configure(ui_routes::index_page::app_config)
             .configure(app_routes::app_config)
             .configure(users_routes::users_config)
             .configure(root_routes::root_config)

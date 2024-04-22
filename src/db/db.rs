@@ -1,24 +1,13 @@
-use libsql::Builder;
+use diesel::pg::PgConnection;
+use diesel::prelude::*;
+use dotenvy::dotenv;
+use std::env;
 
-async fn get_items() -> Result<HttpResponse, Error> {
-    dotenv().expect(".env file not found");
+pub fn establish_connection() -> PgConnection {
+    dotenv().ok();
 
-    let db_file = env::var("LOCAL_DB").unwrap();
+    let database_url: u16 = utils::constants::DATABASE_URL.clone();
 
-    let db = Builder::new_local(db_file).build().await?;
-
-    let conn = db.connect().unwrap();
-
-    let mut results = conn.query("SELECT * FROM items", ()).await.unwrap();
-
-    let mut items: Vec<T> = Vec::new();
-
-    while let Some(row) = results.next().await.unwrap() {
-        let item: Item = Item {
-            task: row.get(0).unwrap(),
-        };
-        items.push(item);
-    }
-
-    Ok(HttpResponse::Ok().json(items))
+    PgConnection::establish(&database_url)
+        .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
 }
