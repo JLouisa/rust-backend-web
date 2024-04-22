@@ -15,19 +15,19 @@ pub fn root_config(config: &mut web::ServiceConfig) {
 
 pub mod root {
     // use crate::*;
-    use crate::controller;
+    use crate::controllers;
     use actix_web::*;
 
     //Root
     #[get("")]
     pub async fn index() -> impl Responder {
-        controller::user::index::get_homepage()
+        controllers::user::index::get_homepage()
     }
 
     //Hello
     #[get("/hello")]
     pub async fn hello() -> impl Responder {
-        controller::user::index::get_hello()
+        controllers::user::index::get_hello()
     }
 
     //Echo
@@ -39,13 +39,13 @@ pub mod root {
     //GET JSON
     #[get("/json")]
     pub async fn json_get() -> impl Responder {
-        controller::user::json::json_get()
+        controllers::user::json::json_get()
     }
 
     //POST JSON
-    type TheUser = controller::user::json::User;
+    type TheUser = controllers::user::json::User;
     #[post("/json")]
     pub async fn json_post(item: web::Json<TheUser>) -> impl Responder {
-        controller::user::json::json_post(item)
+        controllers::user::json::json_post(item)
     }
 }

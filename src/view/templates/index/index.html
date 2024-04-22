@@ -1,4 +1,4 @@
-{% extends 'layout.html' %} {% block content %}
+{% extends 'layout.html' %} {% block content -%}
 
 <h2>Index</h2>
 <p>{{ msg_from_rust }}</p>
@@ -11,5 +11,14 @@
 >
   Say Hello
 </button>
+<br />
+<button
+  id="ping_pong"
+  hx-get="ui/index/mirror/ping"
+  hx-swap="outerHTML"
+  hx-target="#ping_pong"
+>
+  ping
+</button>
 
-{% endblock %}
+{% endblock content -%}

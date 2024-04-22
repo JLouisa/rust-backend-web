@@ -1,9 +1,7 @@
 pub mod routes {
-    pub mod ui_routes {
-        pub mod index_page;
-    }
     pub mod app_routes;
     pub mod root_routes;
+    pub mod ui_routes;
     pub mod users_routes;
 }
 
@@ -11,7 +9,10 @@ pub mod model {
     pub mod user_model;
 }
 
-pub mod controller {
+pub mod controllers {
+    pub mod ui_controller {
+        pub mod index;
+    }
     pub mod user;
 }
 
