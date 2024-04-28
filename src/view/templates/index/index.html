@@ -21,14 +21,10 @@
   ping
 </button>
 
-<span id="users">Users</span>
-<button
-  id="get_users"
-  hx-get="ui/index/mirror/ping"
-  hx-swap="afterend"
-  hx-target="#get_users"
->
+<div id="users">Users</div>
+
+<button id="get_users" hx-get="ui/index/show/users" hx-target="#list_users">
   Get All Users
 </button>
 
-{% endblock content -%}
+<div id="list_users">{% endblock content -%}</div>

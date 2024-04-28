@@ -1,0 +1,14 @@
+<ul>
+  {% for user in all_users.users %}
+  <li id="{{user.id}}">
+    id: {{user.id}}, username: {{user.username}}
+    <button
+      hx-delete="ui/index/delete/{{user.id}}"
+      hx-target="#{{user.id}}"
+      hx-swap="outerHTML"
+    >
+      Delete
+    </button>
+  </li>
+  {% endfor %}
+</ul>

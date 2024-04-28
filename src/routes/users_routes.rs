@@ -1,4 +1,5 @@
 use crate::controllers;
+use crate::db::db_setup::establish_connection;
 use crate::domain::user_domain;
 use actix_web::*;
 
@@ -20,19 +21,9 @@ pub mod user {
 
     // Get all Users
     #[get("")]
-    pub async fn get_all_user(pool: web::Data<DbPool>) -> impl Responder {
-        eprintln!("GET All Users");
-
-        let user = web::block(move || {
-            // Obtaining a connection from the pool is also a potentially blocking operation.
-            // So, it should be called within the `web::block` closure, as well.
-            let mut conn = pool.get().expect("couldn't get db connection from pool");
-    
-            insert_new_user(&mut conn, name)
-            controllers::user::user::get_all_users(connection)
-        })
-        .await?
-        .map_err(error::ErrorInternalServerError)?;
+    pub async fn get_all_user() -> impl Responder {
+        let connection = &mut establish_connection();
+        controllers::ui_controller::index::index_ui_controller::show_all_user_list(connection)
     }
 
     // GET One User

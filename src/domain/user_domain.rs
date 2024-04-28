@@ -32,14 +32,13 @@ impl User {
             username: self.username,
             hashed_password: self.password,
         };
-        user
+        return user;
     }
     pub fn client(user: &user_model::User) -> UserClient {
         let client_user = UserClient {
             id: user.id.to_string(),
             username: user.username.to_string(),
         };
-
         return client_user;
     }
 }

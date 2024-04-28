@@ -1,8 +1,8 @@
 use actix_web::{middleware::Logger, App, HttpServer};
-use diesel::PgConnection;
+// use diesel::PgConnection;
 use dotenv::dotenv;
 use lib::{
-    db::db_setup::establish_connection,
+    // db::db_setup::establish_connection,
     routes::{app_routes, root_routes, ui_routes, users_routes},
     utils,
 };
@@ -14,10 +14,7 @@ async fn main() -> std::io::Result<()> {
     }
 
     // Setup Database Connection
-    let connection: &mut PgConnection = &mut establish_connection();
-    let pool = r2d2::Pool::builder()
-        .build(manager)
-        .expect("database URL should be valid path to SQLite DB file");
+    // let connection: &mut PgConnection = &mut establish_connection();
 
     // Load environment variables from .env file
     dotenv().expect(".env file not found");
@@ -29,9 +26,8 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
         App::new()
             .wrap(Logger::default())
-            .app_data(web::Data::new(pool.clone()))
-            .configure(ui_routes::app_config)
             .configure(app_routes::app_config)
+            .configure(ui_routes::ui_config)
             .configure(users_routes::users_config)
             .configure(root_routes::root_config)
             .service(root_routes::root::index)

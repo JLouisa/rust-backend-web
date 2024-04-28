@@ -26,7 +26,7 @@ pub mod index {
 pub mod user {
     use super::*;
 
-    pub fn get_all_users(connection: &mut PgConnection) -> impl Responder {
+    pub fn get_all_users(connection: &mut PgConnection) -> Option<user_domain::AllUserClient> {
         let the_users: Result<Vec<User>, DieselError> =
             database::users_db::get_all_users(connection);
 
@@ -41,11 +41,11 @@ pub mod user {
                     users: all_users_client,
                 };
 
-                HttpResponse::Ok().json(all_users)
+                Some(all_users)
             }
             Err(err) => {
                 eprintln!("Error loading users: {:?}", err);
-                HttpResponse::InternalServerError().body("Error loading users")
+                None
             }
         }
     }
