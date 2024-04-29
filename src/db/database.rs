@@ -27,6 +27,7 @@ impl Database {
         let database_url: String = utils::constants::DATABASE_URL.clone();
         let manager = ConnectionManager::<PgConnection>::new(database_url);
         let result = r2d2::Pool::builder()
+            .max_size(10)
             .build(manager)
             .expect("Failed to create Pool");
 
