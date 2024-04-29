@@ -1,5 +1,4 @@
 use crate::controllers::ui_controller::index::*;
-use crate::db::db_setup::establish_connection;
 use actix_web::*;
 
 // this function could be located in a different module
@@ -15,6 +14,8 @@ pub fn ui_config(config: &mut web::ServiceConfig) {
 
 // Index Routes Handlers (Controller)
 pub mod index {
+    use crate::db::database::Database;
+
     use super::*;
 
     #[get("/index/hello")]
@@ -31,17 +32,17 @@ pub mod index {
     }
 
     #[get("/index/show/users")]
-    pub async fn show_all_user_list() -> impl Responder {
-        let connection = &mut establish_connection();
-
-        return index::index_ui_controller::show_all_user_list(connection);
+    pub async fn show_all_user_list(db: web::Data<Database>) -> impl Responder {
+        return index::index_ui_controller::show_all_user_list(db);
     }
 
     #[delete("/index/delete/{id}")]
-    pub async fn delete_one_user(path: web::Path<String>) -> impl Responder {
+    pub async fn delete_one_user(
+        path: web::Path<String>,
+        db: web::Data<Database>,
+    ) -> impl Responder {
         let user_id: String = path.into_inner();
-        let connection = &mut establish_connection();
 
-        return index::index_ui_controller::deleted_user(user_id, connection);
+        return index::index_ui_controller::deleted_user(user_id, db);
     }
 }

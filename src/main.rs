@@ -1,11 +1,35 @@
-use actix_web::{middleware::Logger, App, HttpServer};
-// use diesel::PgConnection;
+use actix_web::{get, middleware::Logger, web, App, Error, HttpResponse, HttpServer, Responder};
 use dotenv::dotenv;
 use lib::{
-    // db::db_setup::establish_connection,
+    db,
     routes::{app_routes, root_routes, ui_routes, users_routes},
     utils,
 };
+use serde::Serialize;
+
+#[macro_use]
+extern crate diesel_migrations;
+
+#[derive(Serialize)]
+pub struct Response {
+    status: String,
+    message: String,
+}
+
+#[get("/health")]
+async fn health() -> impl Responder {
+    HttpResponse::Ok().json(Response {
+        status: "ok".to_string(),
+        message: "Server is running".to_string(),
+    })
+}
+
+async fn not_found_error() -> Result<HttpResponse, Error> {
+    Ok(HttpResponse::NotFound().json(Response {
+        status: "error".to_string(),
+        message: "Not Found".to_string(),
+    }))
+}
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -14,7 +38,9 @@ async fn main() -> std::io::Result<()> {
     }
 
     // Setup Database Connection
-    // let connection: &mut PgConnection = &mut establish_connection();
+    let db_connection = db::database::Database::new();
+
+    let app_data = web::Data::new(db_connection);
 
     // Load environment variables from .env file
     dotenv().expect(".env file not found");
@@ -23,14 +49,17 @@ async fn main() -> std::io::Result<()> {
     let address: String = utils::constants::ADDRESS.clone();
 
     // Start the server
-    HttpServer::new(|| {
+    HttpServer::new(move || {
         App::new()
+            .app_data(app_data.clone())
             .wrap(Logger::default())
             .configure(app_routes::app_config)
             .configure(ui_routes::ui_config)
             .configure(users_routes::users_config)
             .configure(root_routes::root_config)
+            .service(health)
             .service(root_routes::root::index)
+        // .default_service(web::route().to(not_found_error()))
     })
     .bind((address, port))?
     .run()

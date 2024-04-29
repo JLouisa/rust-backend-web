@@ -17,19 +17,21 @@ pub fn users_config(config: &mut web::ServiceConfig) {
 
 // User Routes Handlers (Controller)
 pub mod user {
+    use crate::db::database::Database;
+
     use super::*;
 
     // Get all Users
     #[get("")]
-    pub async fn get_all_user() -> impl Responder {
-        let connection = &mut establish_connection();
-        controllers::ui_controller::index::index_ui_controller::show_all_user_list(connection)
+    pub async fn get_all_user(db: web::Data<Database>) -> impl Responder {
+        controllers::ui_controller::index::index_ui_controller::show_all_user_list(db)
     }
 
     // GET One User
     #[get("/{id}")]
-    pub async fn get_one_user(path: web::Path<(String,)>) -> HttpResponse {
-        controllers::user::user::get_one_user(path)
+    pub async fn get_one_user(user_id: web::Path<String>, db: web::Data<Database>) -> HttpResponse {
+        let user_id = user_id.into_inner();
+        controllers::user::user::get_one_user(user_id, db)
     }
 
     // Create One User

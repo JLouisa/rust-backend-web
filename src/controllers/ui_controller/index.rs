@@ -4,6 +4,8 @@ use actix_web::*;
 use diesel::PgConnection;
 
 pub mod index_ui_controller {
+    use self::db::database::Database;
+
     use super::*;
 
     pub fn hello() -> impl Responder {
@@ -35,16 +37,16 @@ pub mod index_ui_controller {
         HttpResponse::Ok().body(format!("POST User detail: {}", "New User"))
     }
 
-    pub fn show_all_user_list(connection: &mut PgConnection) -> HttpResponse {
-        let all_users = user::user::get_all_users(connection);
+    pub fn show_all_user_list(db: web::Data<Database>) -> HttpResponse {
+        let all_users = db.get_all_users();
 
         let mut context = tera::Context::new();
 
         match all_users {
-            Some(content) => {
+            Ok(content) => {
                 context.insert("all_users", &content);
             }
-            None => {
+            Err(_) => {
                 let no_content = "No Users found";
                 context.insert("all_users", &no_content);
             }
@@ -57,8 +59,8 @@ pub mod index_ui_controller {
         return HttpResponse::Ok().body(page_content);
     }
 
-    pub fn deleted_user(user_id: String, connection: &mut PgConnection) -> HttpResponse {
-        let deleted_user = db::database::users_db::delete_one_user(user_id, connection);
+    pub fn deleted_user(user_id: String, db: web::Data<Database>) -> HttpResponse {
+        let deleted_user = db.delete_one_user(user_id);
 
         let mut context = tera::Context::new();
 

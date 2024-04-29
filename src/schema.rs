@@ -5,7 +5,5 @@ diesel::table! {
         id -> Text,
         username -> Text,
         hashed_password -> Text,
-        created_at -> Timestamp,
-        upgraded_at -> Timestamp,
     }
 }

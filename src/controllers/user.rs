@@ -24,11 +24,12 @@ pub mod index {
 }
 
 pub mod user {
+    use self::database::Database;
+
     use super::*;
 
-    pub fn get_all_users(connection: &mut PgConnection) -> Option<user_domain::AllUserClient> {
-        let the_users: Result<Vec<User>, DieselError> =
-            database::users_db::get_all_users(connection);
+    pub fn get_all_users(db: web::Data<Database>) -> Option<user_domain::AllUserClient> {
+        let the_users: Result<Vec<User>, DieselError> = db.get_all_users();
 
         match the_users {
             Ok(content) => {
@@ -50,8 +51,12 @@ pub mod user {
         }
     }
 
-    pub fn get_one_user(path: web::Path<(String,)>) -> HttpResponse {
-        HttpResponse::Ok().body(format!("GET User detail: {}", path.into_inner().0))
+    pub fn get_one_user(path: String, db: web::Data<Database>) -> HttpResponse {
+        let user = db.get_one_user(path);
+        match user {
+            Some(user) => HttpResponse::Ok().json(user),
+            None => HttpResponse::NotFound().finish(),
+        }
     }
 
     pub fn post_one_user(user: models::user_model::User) -> HttpResponse {

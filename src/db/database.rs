@@ -1,54 +1,80 @@
+// crates
+use actix_web::*;
+use diesel::result::Error as DieselError;
+use diesel::PgConnection;
+
+// Database setup
+use diesel::prelude::*;
+use diesel::r2d2::{self, ConnectionManager};
+use dotenv::dotenv;
+
 // Files
 use crate::models::user_model::User;
 use crate::schema::users::dsl::*;
+use crate::utils;
 
-// crates
-use actix_web::*;
-use diesel::prelude::*;
-use diesel::result::Error as DieselError;
-use diesel::PgConnection;
-use serde::{Deserialize, Serialize};
+pub type DBpool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
-pub mod users_db {
-    use super::*;
+pub struct Database {
+    pub pool: DBpool,
+}
 
-    pub fn get_all_users(connection: &mut PgConnection) -> Result<Vec<User>, DieselError> {
-        let the_users: Result<Vec<User>, DieselError> =
-            users.select(User::as_select()).load(connection);
+impl Database {
+    // Create Database Pool
+    pub fn new() -> Self {
+        dotenv().expect(".env file not found");
+
+        let database_url: String = utils::constants::DATABASE_URL.clone();
+        let manager = ConnectionManager::<PgConnection>::new(database_url);
+        let result = r2d2::Pool::builder()
+            .build(manager)
+            .expect("Failed to create Pool");
+
+        Database { pool: result }
+    }
+    // GET One User
+    pub fn get_one_user(&self, the_id: String) -> Option<User> {
+        let user: Option<User> = users
+            .find(the_id)
+            .first::<User>(&mut self.pool.get().expect("Something wrong with pool"))
+            .ok();
+
+        return user;
+    }
+
+    // GET All Users
+    pub fn get_all_users(&self) -> Result<Vec<User>, DieselError> {
+        let the_users: Result<Vec<User>, DieselError> = users
+            .select(User::as_select())
+            .load(&mut self.pool.get().expect("Something wrong with pool"));
+
         return the_users;
     }
 
-    pub fn get_one_user(
-        the_id: &String,
-        connection: &mut PgConnection,
-    ) -> Result<User, DieselError> {
-        let user: Result<Vec<User>, DieselError> = users
-            .filter(id.eq(&the_id))
-            .select(User::as_select())
-            .load(connection);
+    // UPDATE One User
+    pub fn update_one_user(&self, user: User) -> Result<User, DieselError> {
+        let updated_user = diesel::update(users.filter(id.eq(&user.id)))
+            .set(&user)
+            .get_result(&mut self.pool.get().expect("Something wrong with pool"));
 
-        match user {
-            Ok(content) => Ok(content.get(0).expect("Should have Users").to_owned()),
-            Err(err) => Err(err),
-        }
+        return updated_user;
     }
 
-    pub fn delete_one_user(
-        the_id: String,
-        connection: &mut PgConnection,
-    ) -> Result<User, DieselError> {
-        let get_one_user = get_one_user(&the_id, connection);
+    // DELETE One User
+    pub fn delete_one_user(&self, the_id: String) -> Result<User, DieselError> {
+        let get_one_user = self.get_one_user(the_id.clone());
 
         match get_one_user {
-            Ok(content) => {
-                let one_user = diesel::delete(users.filter(id.eq(&the_id))).execute(connection);
+            Some(content) => {
+                let one_user = diesel::delete(users.filter(id.eq(&the_id)))
+                    .execute(&mut self.pool.get().expect("Something wrong with pool"));
 
                 match one_user {
                     Ok(_) => return Ok(content),
                     Err(err) => return Err(err),
                 }
             }
-            Err(err) => Err(err),
+            None => Err(DieselError::NotFound),
         }
     }
 }
