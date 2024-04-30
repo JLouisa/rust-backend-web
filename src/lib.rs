@@ -8,9 +8,12 @@ pub mod controllers {
 pub mod db {
     pub mod database;
     pub mod db_setup;
+    pub mod diesel;
+    pub mod sqlite;
 }
 
 pub mod domain {
+    pub mod datatypes;
     pub mod user_domain;
 }
 
@@ -22,6 +25,7 @@ pub mod routes {
 }
 
 pub mod models {
+    pub mod schema;
     pub mod user_model;
 }
 

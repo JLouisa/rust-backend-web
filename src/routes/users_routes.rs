@@ -21,7 +21,7 @@ pub mod user {
 
     use super::*;
 
-    // Get all Users
+    // GET all Users
     #[get("")]
     pub async fn get_all_user(db: web::Data<Database>) -> impl Responder {
         controllers::ui_controller::index::index_ui_controller::show_all_user_list(db)

@@ -1,11 +1,14 @@
 use actix_web::{get, middleware::Logger, web, App, Error, HttpResponse, HttpServer, Responder};
 use dotenv::dotenv;
 use lib::{
-    db,
+    db::{self, sqlite::SqliteDB},
+    models::schema::create_schema,
     routes::{app_routes, root_routes, ui_routes, users_routes},
     utils,
 };
 use serde::Serialize;
+
+use sqlx::{migrate::MigrateDatabase, sqlite::SqlitePoolOptions, Pool, Sqlite};
 
 #[macro_use]
 extern crate diesel_migrations;
@@ -37,21 +40,37 @@ async fn main() -> std::io::Result<()> {
         std::env::set_var("RUST_LOG", "actix_web=info");
     }
 
-    // Setup Database Connection
-    let db_connection = db::database::Database::new();
-
-    let app_data = web::Data::new(db_connection);
-
     // Load environment variables from .env file
     dotenv().expect(".env file not found");
     env_logger::init();
     let port: u16 = utils::constants::PORT.clone();
     let address: String = utils::constants::ADDRESS.clone();
+    let db_sqlite_url: String = utils::constants::DATABASE_SQLITE_URL.clone();
+
+    // Setup Database Connection for Diesel
+    let db_connection = db::database::Database::new();
+    let app_data_pg = web::Data::new(db_connection);
+
+    // Setup Database Connection for SQLX
+    if !sqlx::Sqlite::database_exists(&db_sqlite_url)
+        .await
+        .expect("Something wrong 1")
+    {
+        let _ = sqlx::Sqlite::create_database(&db_sqlite_url).await;
+
+        match create_schema(&db_sqlite_url).await {
+            Ok(_) => println!("Database created Sucessfully"),
+            Err(e) => panic!("{}", e),
+        }
+    }
+
+    let database_sqlx = SqliteDB::new(&db_sqlite_url).await;
+    let app_data_sqlx = web::Data::new(database_sqlx);
 
     // Start the server
     HttpServer::new(move || {
         App::new()
-            .app_data(app_data.clone())
+            .app_data(app_data_sqlx.clone())
             .wrap(Logger::default())
             .configure(app_routes::app_config)
             .configure(ui_routes::ui_config)
