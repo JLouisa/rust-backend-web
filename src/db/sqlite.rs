@@ -1,15 +1,8 @@
-use derive_more::{Display, From};
-use dotenv::dotenv;
-use serde::{Deserialize, Serialize};
-use sqlx::{sqlite::SqlitePoolOptions, Pool, Sqlite};
-
 use actix_web::*;
-use sqlx::Row;
-use sqlx::{self, FromRow};
-use uuid::Uuid;
+use sqlx::{self, sqlite::SqlitePoolOptions, Pool, Sqlite};
 
-use crate::domain::datatypes::UserClientOut;
-use crate::domain::{datatypes::UserServer, user_domain::User};
+use crate::domain::datatypes::UserServer;
+use crate::models::queries;
 
 #[derive(Debug, thiserror::Error)]
 pub enum DbError {
@@ -47,9 +40,9 @@ impl SqliteDB {
         return self.db.clone();
     }
 
-    pub async fn get_one_user(&self, user_id: &String) -> Result<UserServer, sqlx::Error> {
+    pub async fn get_one_user(&self, user_id: &str) -> Result<UserServer, sqlx::Error> {
         // SQL query select one user from the database using id
-        let sql = "SELECT * FROM users WHERE user_id = ?";
+        let sql = queries::UserQueries::GetOneUser.convert_to_str();
 
         return sqlx::query_as::<_, UserServer>(sql)
             .bind(user_id)
@@ -59,7 +52,7 @@ impl SqliteDB {
 
     pub async fn get_all_user(&self) -> Result<Vec<UserServer>, sqlx::Error> {
         // SQL query select one user from the database using id
-        let sql = "SELECT * FROM users";
+        let sql = queries::UserQueries::GetAllUsers.convert_to_str();
 
         return sqlx::query_as::<_, UserServer>(sql)
             .fetch_all(&self.db)
@@ -68,8 +61,7 @@ impl SqliteDB {
 
     pub async fn create_one_user(&self, user: &UserServer) -> Result<UserServer, sqlx::Error> {
         // SQL query to insert the user into the database and return the inserted user
-        let sql =
-            "INSERT INTO users (user_id, username, hashed_password, active) VALUES (?, ?, ?, ?)";
+        let sql = queries::UserQueries::CreateOneUser.convert_to_str();
 
         match sqlx::query(sql)
             .bind(&user.user_id)
@@ -92,6 +84,40 @@ impl SqliteDB {
             Err(err) => {
                 eprintln!("Error creating user: {:?}", err);
                 Err(err)
+            }
+        }
+    }
+
+    pub async fn update_one_user(&self, user: &UserServer) -> Result<UserServer, sqlx::Error> {
+        // SQL query to insert the user into the database and return the inserted user
+        let sql = queries::UserQueries::UpdateOneUser.convert_to_str();
+
+        match sqlx::query(sql)
+            .bind(&user.username)
+            .bind(&user.hashed_password)
+            .bind(&user.active)
+            .bind(&user.user_id)
+            .execute(&self.db)
+            .await
+        {
+            Ok(_) => {
+                // Await the result of get_one_user before returning it
+                return self.get_one_user(&user.user_id).await;
+            }
+            Err(err) => {
+                eprintln!("Error updating user: {:?}", err);
+                Err(err)
+            }
+        }
+    }
+
+    pub async fn delete_one_user(&self, user_id: &str) -> Result<String, sqlx::Error> {
+        let sql = queries::UserQueries::DeleteOneUser.convert_to_str();
+        match sqlx::query(sql).bind(user_id).execute(&self.db).await {
+            Ok(_) => return Ok("User Deleted succesfully".to_string()),
+            Err(err) => {
+                eprintln!("Error deleting user: {:?}", err);
+                return Err(err);
             }
         }
     }

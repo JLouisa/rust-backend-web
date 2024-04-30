@@ -1,17 +1,17 @@
-use actix_web::{get, middleware::Logger, web, App, Error, HttpResponse, HttpServer, Responder};
+use actix_web::{get, middleware::Logger, web, App, HttpResponse, HttpServer, Responder};
 use dotenv::dotenv;
 use lib::{
-    db::{self, sqlite::SqliteDB},
+    db::sqlite::SqliteDB,
     models::schema::create_schema,
     routes::{app_routes, root_routes, ui_routes, users_routes},
     utils,
 };
 use serde::Serialize;
 
-use sqlx::{migrate::MigrateDatabase, sqlite::SqlitePoolOptions, Pool, Sqlite};
+use sqlx::migrate::MigrateDatabase;
 
-#[macro_use]
-extern crate diesel_migrations;
+// #[macro_use]
+// extern crate diesel_migrations;
 
 #[derive(Serialize)]
 pub struct Response {
@@ -27,12 +27,12 @@ async fn health() -> impl Responder {
     })
 }
 
-async fn not_found_error() -> Result<HttpResponse, Error> {
-    Ok(HttpResponse::NotFound().json(Response {
-        status: "error".to_string(),
-        message: "Not Found".to_string(),
-    }))
-}
+// async fn not_found_error() -> HttpResponse {
+//     HttpResponse::NotFound().json(Response {
+//         status: "error".to_string(),
+//         message: "Not Found".to_string(),
+//     })
+// }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -48,8 +48,8 @@ async fn main() -> std::io::Result<()> {
     let db_sqlite_url: String = utils::constants::DATABASE_SQLITE_URL.clone();
 
     // Setup Database Connection for Diesel
-    let db_connection = db::database::Database::new();
-    let app_data_pg = web::Data::new(db_connection);
+    // let db_connection = db::database::Database::new();
+    // let app_data_pg = web::Data::new(db_connection);
 
     // Setup Database Connection for SQLX
     if !sqlx::Sqlite::database_exists(&db_sqlite_url)
@@ -78,7 +78,7 @@ async fn main() -> std::io::Result<()> {
             .configure(root_routes::root_config)
             .service(health)
             .service(root_routes::root::index)
-        // .default_service(web::route().to(not_found_error()))
+        // .default_service(not_found_error())
     })
     .bind((address, port))?
     .run()

@@ -25,6 +25,7 @@ pub mod routes {
 }
 
 pub mod models {
+    pub mod queries;
     pub mod schema;
     pub mod user_model;
 }

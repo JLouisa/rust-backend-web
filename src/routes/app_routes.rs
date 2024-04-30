@@ -12,7 +12,9 @@ pub fn app_config(config: &mut web::ServiceConfig) {
             .service(app::post_app)
             .service(app::sqlite_all_one)
             .service(app::sqlite_get_one)
-            .service(app::sqlite_create_one),
+            .service(app::sqlite_create_one)
+            .service(app::sqlite_update_one)
+            .service(app::sqlite_delete_one),
     );
 }
 
@@ -39,7 +41,7 @@ pub mod app {
         HttpResponse::Ok().body("POST App")
     }
 
-    // SqliteDB
+    // GET
     #[get("/sqlite/users")]
     pub async fn sqlite_all_one(db: web::Data<SqliteDB>) -> impl Responder {
         match db.get_all_user().await {
@@ -53,7 +55,7 @@ pub mod app {
         };
     }
 
-    // SqliteDB
+    // GET
     #[get("/sqlite/users/{id}")]
     pub async fn sqlite_get_one(
         db: web::Data<SqliteDB>,
@@ -72,7 +74,7 @@ pub mod app {
         };
     }
 
-    // SqliteDB
+    // POST
     #[post("/sqlite/create")]
     pub async fn sqlite_create_one(
         db: web::Data<SqliteDB>,
@@ -81,11 +83,47 @@ pub mod app {
         let user = UserServer::process_for_server(user.into_inner());
 
         match db.create_one_user(&user).await {
-            Ok(content) => {
-                return HttpResponse::Ok().json(content.process_for_client());
+            Ok(user) => {
+                return HttpResponse::Ok().json(user.process_for_client());
             }
             Err(err) => {
                 eprintln!("Error getting user: {:?}", err);
+                return HttpResponse::InternalServerError().finish();
+            }
+        };
+    }
+
+    // PUT
+    #[put("/sqlite/users")]
+    pub async fn sqlite_update_one(
+        db: web::Data<SqliteDB>,
+        user: web::Json<UserServer>,
+    ) -> impl Responder {
+        let user = user.into_inner();
+
+        match db.update_one_user(&user).await {
+            Ok(content) => {
+                return HttpResponse::Ok().json(content);
+            }
+            Err(err) => {
+                eprintln!("Error updating user2: {:?}", err);
+                return HttpResponse::InternalServerError().finish();
+            }
+        };
+    }
+
+    // DELETE
+    #[delete("/sqlite/users/{id}")]
+    pub async fn sqlite_delete_one(
+        db: web::Data<SqliteDB>,
+        path: web::Path<String>,
+    ) -> impl Responder {
+        let user_id: String = path.into_inner();
+
+        match db.delete_one_user(&user_id).await {
+            Ok(msg) => return HttpResponse::Ok().json(msg),
+            Err(err) => {
+                eprintln!("Error deleting user: {:?}", err);
                 return HttpResponse::InternalServerError().finish();
             }
         };

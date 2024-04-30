@@ -1,7 +1,6 @@
+use crate::db;
 use crate::view::setup;
-use crate::{controllers::user, db};
 use actix_web::*;
-use diesel::PgConnection;
 
 pub mod index_ui_controller {
     use self::db::database::Database;

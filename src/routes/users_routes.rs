@@ -1,5 +1,4 @@
 use crate::controllers;
-use crate::db::db_setup::establish_connection;
 use crate::domain::user_domain;
 use actix_web::*;
 
@@ -50,8 +49,9 @@ pub mod user {
 
     // DELETE One User
     #[delete("/{id}")]
-    pub async fn delete_one_user(path: web::Path<(String,)>) -> HttpResponse {
-        println!("{:?}", path);
-        controllers::user::user::delete_one_user(path)
+    pub async fn delete_one_user(path: web::Path<String>) -> HttpResponse {
+        let user_id = path.into_inner();
+
+        controllers::user::user::delete_one_user(user_id)
     }
 }

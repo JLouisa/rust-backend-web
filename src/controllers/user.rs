@@ -92,14 +92,14 @@ pub mod user {
         }
     }
 
-    pub fn delete_one_user(user_id: web::Path<(String,)>) -> HttpResponse {
+    pub fn delete_one_user(user_id: String) -> HttpResponse {
         let connection = &mut establish_connection();
 
-        let posted_user = delete(users.find(&user_id.into_inner().0))
+        let deleted_user = delete(users.find(user_id))
             .returning(User::as_returning())
             .get_result(connection);
 
-        match posted_user {
+        match deleted_user {
             Ok(content) => {
                 println!("User deleted: {:?}", content);
                 let user = user_domain::User::client(&content);
