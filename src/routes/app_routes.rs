@@ -14,6 +14,7 @@ pub fn app_config(config: &mut web::ServiceConfig) {
             .service(app::sqlite_get_one)
             .service(app::sqlite_create_one)
             .service(app::sqlite_update_one)
+            .service(app::sqlite_transaction)
             .service(app::sqlite_delete_one),
     );
 }
@@ -124,6 +125,25 @@ pub mod app {
             Ok(msg) => return HttpResponse::Ok().json(msg),
             Err(err) => {
                 eprintln!("Error deleting user: {:?}", err);
+                return HttpResponse::InternalServerError().finish();
+            }
+        };
+    }
+
+    // TRANSACTION
+    #[post("/sqlite/transaction")]
+    pub async fn sqlite_transaction(
+        db: web::Data<SqliteDB>,
+        user: web::Json<UserClientIn>,
+    ) -> impl Responder {
+        let user = UserServer::process_for_server(user.into_inner());
+
+        match db.transaction(&user).await {
+            Ok(user) => {
+                return HttpResponse::Ok().json(user.process_for_client());
+            }
+            Err(err) => {
+                eprintln!("Something went Wrong with the TRansaction: {:?}", err);
                 return HttpResponse::InternalServerError().finish();
             }
         };

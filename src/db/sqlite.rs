@@ -16,6 +16,7 @@ pub struct SqliteDB {
 }
 
 impl SqliteDB {
+    // Create Database Pool
     pub async fn new(db_sqlite_url: &str) -> Self {
         let pool = SqlitePoolOptions::new()
             .max_connections(5)
@@ -36,10 +37,12 @@ impl SqliteDB {
         return SqliteDB { db: pool };
     }
 
+    // Return Pool
     pub fn get_pool(&self) -> Pool<Sqlite> {
         return self.db.clone();
     }
 
+    // GET One User
     pub async fn get_one_user(&self, user_id: &str) -> Result<UserServer, sqlx::Error> {
         // SQL query select one user from the database using id
         let sql = queries::UserQueries::GetOneUser.convert_to_str();
@@ -50,6 +53,7 @@ impl SqliteDB {
             .await;
     }
 
+    // GET All Users
     pub async fn get_all_user(&self) -> Result<Vec<UserServer>, sqlx::Error> {
         // SQL query select one user from the database using id
         let sql = queries::UserQueries::GetAllUsers.convert_to_str();
@@ -59,6 +63,7 @@ impl SqliteDB {
             .await;
     }
 
+    // POST One User
     pub async fn create_one_user(&self, user: &UserServer) -> Result<UserServer, sqlx::Error> {
         // SQL query to insert the user into the database and return the inserted user
         let sql = queries::UserQueries::CreateOneUser.convert_to_str();
@@ -88,6 +93,7 @@ impl SqliteDB {
         }
     }
 
+    // PUT One User
     pub async fn update_one_user(&self, user: &UserServer) -> Result<UserServer, sqlx::Error> {
         // SQL query to insert the user into the database and return the inserted user
         let sql = queries::UserQueries::UpdateOneUser.convert_to_str();
@@ -111,8 +117,10 @@ impl SqliteDB {
         }
     }
 
+    // DELETE One User
     pub async fn delete_one_user(&self, user_id: &str) -> Result<String, sqlx::Error> {
         let sql = queries::UserQueries::DeleteOneUser.convert_to_str();
+
         match sqlx::query(sql).bind(user_id).execute(&self.db).await {
             Ok(_) => return Ok("User Deleted succesfully".to_string()),
             Err(err) => {
@@ -120,5 +128,39 @@ impl SqliteDB {
                 return Err(err);
             }
         }
+    }
+
+    // Transaction
+    pub async fn transaction(&self, user: &UserServer) -> Result<UserServer, sqlx::Error> {
+        // Start a new transaction
+        let mut txn = self.db.begin().await?;
+
+        // Define SQL queries
+        let create_sql = queries::UserQueries::CreateOneUser.convert_to_str();
+        let update_sql = queries::UserQueries::UpdateOneUser.convert_to_str();
+
+        // Execute the first query to create a new user
+        sqlx::query(create_sql)
+            .bind(&user.user_id)
+            .bind(&user.username)
+            .bind(&user.hashed_password)
+            .bind(&user.active)
+            .execute(&mut *txn)
+            .await?;
+
+        // Execute the second query to update the user
+        sqlx::query(update_sql)
+            .bind("TXN_Username")
+            .bind("TXN_Password")
+            .bind(false)
+            .bind(&user.user_id)
+            .execute(&mut *txn)
+            .await?;
+
+        // Commit the transaction
+        txn.commit().await?;
+
+        // Fetch the updated user from the database
+        return self.get_one_user(&user.user_id).await;
     }
 }
