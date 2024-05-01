@@ -21,6 +21,7 @@ cargo-watch = "8.5.2"
 derive_more = "0.99.17"
 thiserror = "1.0.59"
 argon2 = "0.5.3"
+pasetors = "0.6.8"
 # SQLX
 sqlx = {version = "0.7.1", features = ["sqlite", "runtime-tokio", "chrono", "macros"]}
 # Diesel

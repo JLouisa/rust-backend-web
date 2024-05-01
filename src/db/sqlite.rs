@@ -68,7 +68,7 @@ impl SqliteDB {
     }
 
     // GET All Users
-    pub async fn get_all_user(&self) -> Result<Vec<UserServer>, sqlx::Error> {
+    pub async fn get_all_users(&self) -> Result<Vec<UserServer>, sqlx::Error> {
         // SQL query select one user from the database using id
         let sql = queries::UserQueries::GetAllUsers.convert_to_str();
 
@@ -136,7 +136,7 @@ impl SqliteDB {
         let sql = queries::UserQueries::DeleteOneUser.convert_to_str();
 
         match sqlx::query(sql).bind(user_id).execute(&self.db).await {
-            Ok(_) => return Ok("User Deleted succesfully".to_string()),
+            Ok(_) => return Ok("succesfully".to_string()),
             Err(err) => {
                 eprintln!("Error deleting user: {:?}", err);
                 return Err(err);

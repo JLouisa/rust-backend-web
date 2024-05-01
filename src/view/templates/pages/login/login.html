@@ -1,0 +1,21 @@
+{% extends 'layout.html' %} {% block content -%}
+
+<section id="login_page">
+  <h2>Login</h2>
+  <p>{{ login_msg }}</p>
+
+  <form action="/login" method="post">
+    <div>
+      <label for="username" required>Username</label>
+      <input type="text" name="username" placeholder="Username" required />
+    </div>
+    <div>
+      <label for="password" required>password</label>
+      <input type="password" name="password" placeholder="Password" required />
+    </div>
+    <button>Login</button>
+  </form>
+
+  <div id="list_users"></div>
+</section>
+{% endblock content -%}

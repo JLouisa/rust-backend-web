@@ -16,7 +16,9 @@ pub async fn verify_login(db: web::Data<SqliteDB>, login_info: UserClientIn) -> 
                     Ok(verified) => {
                         println!("{:?}", verified);
                         if verified {
-                            HttpResponse::Ok().body("Login succesfull")
+                            HttpResponse::SeeOther()
+                                .header("Location", "/endpoints")
+                                .finish()
                         } else {
                             HttpResponse::Ok().body("Wrong Password or Username")
                         }

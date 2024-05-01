@@ -1,4 +1,4 @@
-use crate::db::database;
+use crate::db::diesel::Database;
 use crate::domain::user_domain;
 use crate::schema::users::dsl::*;
 use crate::{
@@ -24,8 +24,6 @@ pub mod index {
 }
 
 pub mod user {
-    use self::database::Database;
-
     use super::*;
 
     pub fn get_all_users(db: web::Data<Database>) -> Option<user_domain::AllUserClient> {

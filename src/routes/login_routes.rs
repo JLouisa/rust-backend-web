@@ -1,6 +1,6 @@
-use crate::controllers;
 use crate::db::sqlite::SqliteDB;
 use crate::domain::datatypes::{UserClientIn, UserServer};
+use crate::{controllers, view};
 use actix_web::*;
 
 // this function could be located in a different module
@@ -8,6 +8,7 @@ pub fn login_config(config: &mut web::ServiceConfig) {
     config.service(
         web::scope("/login")
             .service(login::test)
+            .service(login::login_page)
             .service(login::post_login),
     );
 }
@@ -20,10 +21,23 @@ pub mod login {
         HttpResponse::Ok().body("GET Login")
     }
 
+    #[get("")]
+    pub async fn login_page() -> HttpResponse {
+        let mut context = tera::Context::new();
+
+        context.insert("login_msg", "Please login to continue");
+        match view::setup::TEMPLATES.render("pages/login/login.html", &context) {
+            Ok(content) => return HttpResponse::Ok().body(content),
+            Err(err) => {
+                eprintln!("Error rendering index page: {}", err);
+                return HttpResponse::InternalServerError().finish(); // Return 500 Internal Server Error
+            }
+        }
+    }
     #[post("")]
     pub async fn post_login(
         db: web::Data<SqliteDB>,
-        login_info: web::Json<UserClientIn>,
+        login_info: web::Form<UserClientIn>,
     ) -> impl Responder {
         let user = login_info.into_inner();
         controllers::login::verify_login(db, user).await

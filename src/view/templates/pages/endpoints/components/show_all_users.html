@@ -1,0 +1,14 @@
+<ul>
+  {% for user in all_users %}
+  <li id="user_{{user.user_id}}">
+    id: {{user.user_id}}, username: {{user.username}}
+    <button
+      hx-delete="/app/sqlite/show/{{user.user_id}}"
+      hx-target="#user_{{user.user_id}}"
+      hx-swap="outerHTML"
+    >
+      Delete
+    </button>
+  </li>
+  {% endfor %}
+</ul>

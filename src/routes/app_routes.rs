@@ -2,18 +2,22 @@ use crate::db::sqlite::SqliteDB;
 use crate::domain::datatypes::{UserClientIn, UserServer};
 use actix_web::*;
 
+use crate::controllers::ui_controller;
+
 // this function could be located in a different module
 pub fn app_config(config: &mut web::ServiceConfig) {
     config.service(
         web::scope("/app")
             .service(sqlite::app)
             .service(sqlite::post_app)
-            .service(sqlite::sqlite_all_one)
-            .service(sqlite::sqlite_get_one)
+            .service(sqlite::sqlite_get_all_user)
+            .service(sqlite::ui::show_all_user_list)
+            .service(sqlite::sqlite_get_one_user)
             .service(sqlite::sqlite_create_one)
             .service(sqlite::sqlite_update_one)
-            .service(sqlite::sqlite_transaction)
-            .service(sqlite::sqlite_delete_one),
+            .service(sqlite::sqlite_delete_one)
+            .service(sqlite::ui::delete_one_user)
+            .service(sqlite::sqlite_transaction),
     );
 }
 
@@ -34,8 +38,8 @@ pub mod sqlite {
 
     // GET
     #[get("/sqlite/users")]
-    pub async fn sqlite_all_one(db: web::Data<SqliteDB>) -> impl Responder {
-        match db.get_all_user().await {
+    pub async fn sqlite_get_all_user(db: web::Data<SqliteDB>) -> impl Responder {
+        match db.get_all_users().await {
             Ok(users) => {
                 return HttpResponse::Ok().json(users);
             }
@@ -48,7 +52,7 @@ pub mod sqlite {
 
     // GET
     #[get("/sqlite/users/{id}")]
-    pub async fn sqlite_get_one(
+    pub async fn sqlite_get_one_user(
         db: web::Data<SqliteDB>,
         path: web::Path<String>,
     ) -> impl Responder {
@@ -137,5 +141,25 @@ pub mod sqlite {
                 return HttpResponse::InternalServerError().finish();
             }
         };
+    }
+
+    pub mod ui {
+        use super::*;
+
+        #[get("/sqlite/show/users")]
+        pub async fn show_all_user_list(db: web::Data<SqliteDB>) -> impl Responder {
+            return ui_controller::index::index_ui_controller::show_all_user_list(db).await;
+        }
+
+        #[delete("/sqlite/show/{id}")]
+        pub async fn delete_one_user(
+            db: web::Data<SqliteDB>,
+            path: web::Path<String>,
+        ) -> impl Responder {
+            let user_id: String = path.into_inner();
+
+            return ui_controller::index::index_ui_controller::deleted_user_sqlite(user_id, db)
+                .await;
+        }
     }
 }

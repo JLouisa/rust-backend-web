@@ -1,0 +1,37 @@
+{% extends 'layout.html' %} {% block content -%}
+
+<section id="endpoints">
+  <h2>Endpoints</h2>
+  <p>{{ msg_from_rust }}</p>
+
+  <button
+    id="hello"
+    hx-get="ui/index/hello"
+    hx-swap="outerHTML"
+    hx-target="#hello"
+  >
+    Say Hello
+  </button>
+  <br />
+  <button
+    id="ping_pong"
+    hx-get="ui/index/mirror/ping"
+    hx-swap="outerHTML"
+    hx-target="#ping_pong"
+  >
+    ping
+  </button>
+
+  <div id="users">Users</div>
+
+  <button
+    id="get_users"
+    hx-get="/app/sqlite/show/users"
+    hx-target="#list_users"
+  >
+    Get All Users
+  </button>
+
+  <div id="list_users"></div>
+</section>
+{% endblock content -%}

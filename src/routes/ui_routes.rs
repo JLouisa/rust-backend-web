@@ -1,21 +1,25 @@
-use crate::controllers::ui_controller::index::*;
+use crate::controllers::ui_controller::*;
+use crate::db::diesel::Database;
 use actix_web::*;
+
+use crate::controllers;
+use crate::db::sqlite::SqliteDB;
+use crate::domain::datatypes::{UserClientIn, UserServer};
 
 // this function could be located in a different module
 pub fn ui_config(config: &mut web::ServiceConfig) {
     config.service(
         web::scope("/ui")
-            .service(index::hello)
-            .service(index::ping_pong)
-            .service(index::show_all_user_list)
-            .service(index::delete_one_user),
+            .service(index_ui::hello)
+            .service(index_ui::ping_pong)
+            .service(index_ui::show_all_user_list)
+            .service(index_ui::delete_one_user)
+            .service(login_ui::get_login),
     );
 }
 
 // Index Routes Handlers (Controller)
-pub mod index {
-    use crate::db::database::Database;
-
+pub mod index_ui {
     use super::*;
 
     #[get("/index/hello")]
@@ -33,7 +37,7 @@ pub mod index {
 
     #[get("/index/show/users")]
     pub async fn show_all_user_list(db: web::Data<Database>) -> impl Responder {
-        return index::index_ui_controller::show_all_user_list(db);
+        return index::index_ui_controller::show_all_user_list_diesel(db);
     }
 
     #[delete("/index/delete/{id}")]
@@ -44,5 +48,14 @@ pub mod index {
         let user_id: String = path.into_inner();
 
         return index::index_ui_controller::deleted_user(user_id, db);
+    }
+}
+
+pub mod login_ui {
+    use super::*;
+
+    #[get("/login")]
+    pub async fn get_login() -> impl Responder {
+        return login::login_ui_controller::login_page();
     }
 }

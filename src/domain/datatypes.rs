@@ -49,3 +49,8 @@ pub struct UserClientOut {
     pub hashed_password: String,
     pub active: bool,
 }
+
+pub enum LoginTypes {
+    Succesfull,
+    Failed,
+}

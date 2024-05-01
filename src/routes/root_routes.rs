@@ -5,7 +5,9 @@ use actix_web::*;
 pub fn root_config(config: &mut web::ServiceConfig) {
     config.service(
         web::scope("")
-            .service(root::index)
+            .service(root::index_page)
+            .service(root::endpoints_page)
+            // .service(root::login_page)
             .service(root::echo)
             .service(root::hello)
             .service(root::json_post),
@@ -18,12 +20,12 @@ pub mod root {
 
     // Index
     #[get("/")]
-    pub async fn index() -> impl Responder {
+    pub async fn index_page() -> impl Responder {
         let mut context = tera::Context::new();
-        context.insert("msg_from_rust", "Msg from Rust server");
+        context.insert("home_msg_from_rust", "Msg from Rust server");
         context.insert("ping_pong", "ping");
 
-        match view::setup::TEMPLATES.render("index/index.html", &context) {
+        match view::setup::TEMPLATES.render("pages/index/index.html", &context) {
             Ok(content) => return HttpResponse::Ok().body(content),
             Err(err) => {
                 eprintln!("Error rendering index page: {}", err);
@@ -31,6 +33,35 @@ pub mod root {
             }
         };
     }
+
+    #[get("/endpoints")]
+    pub async fn endpoints_page() -> impl Responder {
+        let mut context = tera::Context::new();
+        context.insert("msg_from_rust", "Msg from Rust server");
+        context.insert("ping_pong", "ping");
+
+        match view::setup::TEMPLATES.render("pages/endpoints/endpoints.html", &context) {
+            Ok(content) => return HttpResponse::Ok().body(content),
+            Err(err) => {
+                eprintln!("Error rendering index page: {}", err);
+                return HttpResponse::InternalServerError().finish(); // Return 500 Internal Server Error
+            }
+        };
+    }
+
+    // #[get("/login")]
+    // pub async fn login_page() -> HttpResponse {
+    //     let mut context = tera::Context::new();
+
+    //     context.insert("login_msg", "Please login to continue");
+    //     match view::setup::TEMPLATES.render("pages/login/login.html", &context) {
+    //         Ok(content) => return HttpResponse::Ok().body(content),
+    //         Err(err) => {
+    //             eprintln!("Error rendering index page: {}", err);
+    //             return HttpResponse::InternalServerError().finish(); // Return 500 Internal Server Error
+    //         }
+    //     }
+    // }
 
     //Hello
     #[get("/hello")]

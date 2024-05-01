@@ -1,4 +1,5 @@
 use crate::controllers;
+use crate::db::diesel::Database;
 use crate::domain::user_domain;
 use actix_web::*;
 
@@ -16,14 +17,12 @@ pub fn users_config(config: &mut web::ServiceConfig) {
 
 // User Routes Handlers (Controller)
 pub mod user {
-    use crate::db::database::Database;
-
     use super::*;
 
     // GET all Users
     #[get("")]
     pub async fn get_all_user(db: web::Data<Database>) -> impl Responder {
-        controllers::ui_controller::index::index_ui_controller::show_all_user_list(db)
+        controllers::ui_controller::index::index_ui_controller::show_all_user_list_diesel(db)
     }
 
     // GET One User
