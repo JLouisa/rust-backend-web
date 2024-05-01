@@ -3,7 +3,6 @@ use dotenv::dotenv;
 use lib::{
     db::sqlite::SqliteDB,
     models::schema::create_schema,
-    modules::token_pub::generete_public_token,
     routes::{app_routes, login_routes, root_routes, ui_routes, users_routes},
     utils,
 };
@@ -37,9 +36,6 @@ async fn health() -> impl Responder {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    // =====================================
-    generete_public_token();
-    // =====================================
     if std::env::var_os("RUST_LOG").is_none() {
         std::env::set_var("RUST_LOG", "actix_web=info");
     }

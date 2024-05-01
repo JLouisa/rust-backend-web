@@ -1,8 +1,8 @@
+use crate::modules::password_hash;
+use actix_web::cookie::time;
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 use uuid::Uuid;
-
-use crate::modules::password_hash;
 
 #[derive(Serialize, Deserialize, FromRow, Debug)]
 pub struct UserServer {
@@ -37,6 +37,13 @@ impl UserServer {
 }
 
 #[derive(Serialize, Deserialize, FromRow, Debug)]
+pub struct UserClientSignIn {
+    pub username: String,
+    pub password: String,
+    pub remember: Option<bool>,
+}
+
+#[derive(Serialize, Deserialize, FromRow, Debug)]
 pub struct UserClientIn {
     pub username: String,
     pub password: String,
@@ -53,4 +60,28 @@ pub struct UserClientOut {
 pub enum LoginTypes {
     Succesfull,
     Failed,
+}
+
+pub enum CookieVariations {
+    Auth,
+    ShoppingCarts,
+    Personalization,
+    Payment,
+    NAW,
+}
+
+pub struct Settings {
+    pub value: String,
+    pub time: time::OffsetDateTime,
+}
+impl Settings {
+    pub fn new(value: &str, remember: bool) -> Self {
+        Settings {
+            value: value.to_string(),
+            time: match remember {
+                true => time::OffsetDateTime::now_utc() + time::Duration::days(7),
+                false => time::OffsetDateTime::now_utc() + time::Duration::days(1),
+            },
+        }
+    }
 }

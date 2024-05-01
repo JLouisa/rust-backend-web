@@ -1,10 +1,8 @@
-{% extends 'layout.html' %} {% block content -%}
-
 <section id="login_page">
   <h2>Login</h2>
   <p>{{ login_msg }}</p>
 
-  <form action="/login" method="post">
+  <form hx-post="/login" hx-target>
     <div>
       <label for="username" required>Username</label>
       <input
@@ -26,8 +24,8 @@
       />
     </div>
     <div>
-      <label for="remember">Stay Logged in</label>
-      <input type="checkbox" id="remember" name="remember" value="true" />
+      <label for="save">Stay Logged in</label>
+      <input type="checkbox" />
     </div>
     <button>Login</button>
   </form>
@@ -35,4 +33,3 @@
   <div id="list_users"></div>
   <p>{{ login_failed_msg }}</p>
 </section>
-{% endblock content -%}

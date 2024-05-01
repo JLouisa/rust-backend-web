@@ -2,10 +2,6 @@ use crate::controllers::ui_controller::*;
 use crate::db::diesel::Database;
 use actix_web::*;
 
-use crate::controllers;
-use crate::db::sqlite::SqliteDB;
-use crate::domain::datatypes::{UserClientIn, UserServer};
-
 // this function could be located in a different module
 pub fn ui_config(config: &mut web::ServiceConfig) {
     config.service(

@@ -1,5 +1,5 @@
 use crate::db::sqlite::SqliteDB;
-use crate::domain::datatypes::{UserClientIn, UserServer};
+use crate::domain::datatypes::{UserClientIn, UserClientSignIn};
 use crate::{controllers, view};
 use actix_web::*;
 
@@ -26,6 +26,9 @@ pub mod login {
         let mut context = tera::Context::new();
 
         context.insert("login_msg", "Please login to continue");
+        context.insert("login_value_username", "");
+        context.insert("login_value_password", "");
+        context.insert("login_failed_msg", "");
         match view::setup::TEMPLATES.render("pages/login/login.html", &context) {
             Ok(content) => return HttpResponse::Ok().body(content),
             Err(err) => {
@@ -34,12 +37,14 @@ pub mod login {
             }
         }
     }
+    // POST Login info with remember field optional
     #[post("")]
     pub async fn post_login(
         db: web::Data<SqliteDB>,
-        login_info: web::Form<UserClientIn>,
+        login_info: web::Form<UserClientSignIn>,
     ) -> impl Responder {
         let user = login_info.into_inner();
+
         controllers::login::verify_login(db, user).await
     }
 }

@@ -1,3 +1,4 @@
+use crate::domain::datatypes::UserServer;
 use crate::utils;
 use core::convert::TryFrom;
 use dotenv::dotenv;
@@ -7,7 +8,34 @@ use pasetors::paserk::FormatAsPaserk;
 use pasetors::token::UntrustedToken;
 use pasetors::{local, version4::V4, Local};
 
-pub fn generete_public_token() {
+pub fn generete_public_token(user: UserServer) -> String {
+    dotenv().expect(".env file not found");
+    let token_secret: &[u8] = utils::constants::TOKEN_SECRET.as_bytes();
+
+    // Add a custom `data` claims.
+    let mut claims = Claims::new().expect("Creating claim failed");
+    claims
+        .add_additional("user_id", user.user_id)
+        .expect("Addition 1 failed");
+    claims
+        .add_additional("username", user.username)
+        .expect("Addition 1 fail");
+    claims
+        .expiration("2039-01-01T00:00:00+00:00")
+        .expect("Experation claim failed");
+
+    // Generate the key and encrypt the claims.
+    let token_sk = "k4.local.JvUcBYO9vWzStfoaGdvuWAEBgLJDxIq1mgVAKIQLmH8";
+    let sk = SymmetricKey::<V4>::try_from(token_sk).expect("Generating Key failed");
+
+    // Create Token
+    let token =
+        local::encrypt(&sk, &claims, None, Some(token_secret)).expect("Creating token failed");
+
+    return token;
+}
+
+pub fn generete_public_token_test() {
     dotenv().expect(".env file not found");
     let token_secret: &[u8] = utils::constants::TOKEN_SECRET.as_bytes();
 
@@ -36,6 +64,8 @@ pub fn generete_public_token() {
         format!("Paserk: {:?}", paserk)
     }
 
+    let sk_token = create_sk_token();
+
     let token =
         local::encrypt(&sk, &claims, None, Some(token_secret)).expect("Creating token failed");
 
@@ -59,9 +89,10 @@ pub fn generete_public_token() {
 
     let claims = trusted_token.payload_claims().unwrap();
 
-    // println!("{:?}", claims);
-    // println!("Secret Key: {:?}", sk);
-    // println!("{:?}", claims.get_claim("data"));
-    // println!("{:?}", claims.get_claim("user_id"));
-    // println!("{:?}", claims.get_claim("iat"));
+    println!("{:?}", claims);
+    println!("Secret Key: {:?}", sk_token);
+    println!("Secret Key: {:?}", sk);
+    println!("{:?}", claims.get_claim("data"));
+    println!("{:?}", claims.get_claim("user_id"));
+    println!("{:?}", claims.get_claim("iat"));
 }

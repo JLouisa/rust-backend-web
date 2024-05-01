@@ -1,5 +1,3 @@
-use self::db::diesel::Database;
-use crate::db;
 use crate::view::setup;
 use actix_web::*;
 
