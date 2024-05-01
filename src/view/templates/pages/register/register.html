@@ -1,0 +1,38 @@
+{% extends 'layout.html' %} {% block content -%}
+
+<section id="register_page">
+  <h2>Login</h2>
+  <p>{{ login_msg }}</p>
+
+  <form action="/login" method="post">
+    <div>
+      <label for="username" required>Username</label>
+      <input
+        type="text"
+        name="username"
+        value="{{ login_value_username }}"
+        placeholder="Username"
+        required
+      />
+    </div>
+    <div>
+      <label for="password" required>password</label>
+      <input
+        type="password"
+        name="password"
+        value="{{ login_value_password }}"
+        placeholder="Password"
+        required
+      />
+    </div>
+    <div>
+      <label for="remember">Stay Logged in</label>
+      <input type="checkbox" id="remember" name="remember" value="true" />
+    </div>
+    <button>Login</button>
+  </form>
+
+  <div id="list_users"></div>
+  <p>{{ login_failed_msg }}</p>
+</section>
+{% endblock content -%}

@@ -7,7 +7,7 @@ use actix_web::{
 };
 use futures_util::future::LocalBoxFuture;
 
-use crate::domain::datatypes::CookieVariations;
+use crate::domain::datatypes::{CookieVariations, UserCookie};
 
 pub struct CheckLogin;
 
@@ -44,64 +44,35 @@ where
     dev::forward_ready!(service);
 
     fn call(&self, request: ServiceRequest) -> Self::Future {
-        println!("Middleware was called");
+        // println!("Middleware was called");
 
         let authentication_cookie = request.cookie(CookieVariations::Auth.get_name().as_str());
 
-        match authentication_cookie {
-            Some(cookie) => {
-                println!("Cookie found: {:?}", cookie);
-                match crate::modules::token_pub::verify_token(cookie.value()) {
-                    Some(user) => {
-                        let res = self.service.call(request);
+        let the_user: Option<UserCookie>;
 
-                        return Box::pin(async move {
-                            // forwarded responses map to "left" body
-                            res.await.map(ServiceResponse::map_into_left_body)
-                        });
-                    }
-                    None => {
-                        if request.path() != "/login" {
-                            let (request, _pl) = request.into_parts();
-
-                            let response = HttpResponse::Found()
-                                .insert_header((http::header::LOCATION, "/login"))
-                                .finish()
-                                // constructed responses map to "right" body
-                                .map_into_right_body();
-
-                            return Box::pin(async { Ok(ServiceResponse::new(request, response)) });
-                        } else {
-                            let res = self.service.call(request);
-
-                            return Box::pin(async move {
-                                // forwarded responses map to "left" body
-                                res.await.map(ServiceResponse::map_into_left_body)
-                            });
-                        }
-                    }
-                };
-            }
-            None => {
-                if request.path() != "/login" {
-                    let (request, _pl) = request.into_parts();
-
-                    let response = HttpResponse::Found()
-                        .insert_header((http::header::LOCATION, "/login"))
-                        .finish()
-                        // constructed responses map to "right" body
-                        .map_into_right_body();
-
-                    return Box::pin(async { Ok(ServiceResponse::new(request, response)) });
-                } else {
-                    let res = self.service.call(request);
-
-                    return Box::pin(async move {
-                        // forwarded responses map to "left" body
-                        res.await.map(ServiceResponse::map_into_left_body)
-                    });
-                }
-            }
+        if let Some(cookie) = authentication_cookie {
+            the_user = crate::modules::token_pub::verify_token(cookie.value());
+        } else {
+            the_user = None;
         }
+
+        let unauthorized_paths = vec!["/login", "/register"];
+        if the_user.is_none() && !unauthorized_paths.contains(&request.path()) {
+            let (request, _pl) = request.into_parts();
+
+            let response = HttpResponse::Found()
+                .insert_header((http::header::LOCATION, "/login"))
+                .finish()
+                // constructed responses map to "right" body
+                .map_into_right_body();
+
+            return Box::pin(async { Ok(ServiceResponse::new(request, response)) });
+        }
+        let res = self.service.call(request);
+
+        return Box::pin(async move {
+            // forwarded responses map to "left" body
+            res.await.map(ServiceResponse::map_into_left_body)
+        });
     }
 }
