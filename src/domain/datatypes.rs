@@ -46,6 +46,26 @@ pub struct UserClientSignIn {
 }
 
 #[derive(Serialize, Deserialize, FromRow, Debug)]
+pub struct UserClientRegister {
+    pub username: String,
+    pub password: String,
+    pub confirm_password: String,
+}
+impl UserClientRegister {
+    pub fn verify_password(&self) -> Result<UserServer, ()> {
+        if self.password == self.confirm_password {
+            let user = UserClientIn {
+                username: self.username.to_string(),
+                password: self.password.to_string(),
+            };
+            Ok(UserServer::process_for_server(user))
+        } else {
+            Err(())
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, FromRow, Debug)]
 pub struct UserClientIn {
     pub username: String,
     pub password: String,

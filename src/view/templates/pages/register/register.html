@@ -1,38 +1,45 @@
 {% extends 'layout.html' %} {% block content -%}
 
 <section id="register_page">
-  <h2>Login</h2>
-  <p>{{ login_msg }}</p>
+  <h2>Register</h2>
+  <p>{{ register_msg }}</p>
 
-  <form action="/login" method="post">
+  <form action="/register" method="post">
     <div>
       <label for="username" required>Username</label>
       <input
         type="text"
         name="username"
-        value="{{ login_value_username }}"
+        value="{{ register_value_username }}"
         placeholder="Username"
         required
       />
     </div>
     <div>
-      <label for="password" required>password</label>
+      <label for="password" required>Password:</label>
       <input
         type="password"
         name="password"
-        value="{{ login_value_password }}"
+        value="{{ register_value_password }}"
         placeholder="Password"
         required
       />
     </div>
     <div>
-      <label for="remember">Stay Logged in</label>
-      <input type="checkbox" id="remember" name="remember" value="true" />
+      <label for="confirm_password" required>Confirm Password:</label>
+      <input
+        type="password"
+        name="confirm_password"
+        value="{{ register_value_confirm_password }}"
+        placeholder="Confirm Password"
+        required
+      />
     </div>
-    <button>Login</button>
+    <button>Register</button>
   </form>
+  <a href="/login">Login</a>
 
   <div id="list_users"></div>
-  <p>{{ login_failed_msg }}</p>
+  <p>{{ register_failed_msg }}</p>
 </section>
 {% endblock content -%}
