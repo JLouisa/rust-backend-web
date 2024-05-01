@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 use uuid::Uuid;
 
+use crate::modules::password_hash;
+
 #[derive(Serialize, Deserialize, FromRow, Debug)]
 pub struct UserServer {
     pub user_id: String,
@@ -13,11 +15,13 @@ impl UserServer {
     pub fn process_for_server(user_client_in: UserClientIn) -> Self {
         let user_id: String = format!("{:?}", Uuid::new_v4());
         let user_active: bool = true;
+        let password = password_hash::Password::hash_password(user_client_in.password.as_str())
+            .expect("Error hashing the password");
 
         return UserServer {
             user_id,
             username: user_client_in.username.to_string(),
-            hashed_password: user_client_in.password,
+            hashed_password: password.get_password_string(),
             active: user_active,
         };
     }
@@ -34,8 +38,8 @@ impl UserServer {
 
 #[derive(Serialize, Deserialize, FromRow, Debug)]
 pub struct UserClientIn {
-    username: String,
-    password: String,
+    pub username: String,
+    pub password: String,
 }
 
 #[derive(Serialize, Deserialize, FromRow, Debug)]

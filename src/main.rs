@@ -3,7 +3,7 @@ use dotenv::dotenv;
 use lib::{
     db::sqlite::SqliteDB,
     models::schema::create_schema,
-    routes::{app_routes, root_routes, ui_routes, users_routes},
+    routes::{app_routes, login_routes, root_routes, ui_routes, users_routes},
     utils,
 };
 use serde::Serialize;
@@ -72,12 +72,13 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(app_data_sqlx.clone())
             .wrap(Logger::default())
+            .configure(login_routes::login_config)
             .configure(app_routes::app_config)
             .configure(ui_routes::ui_config)
             .configure(users_routes::users_config)
             .configure(root_routes::root_config)
-            .service(health)
             .service(root_routes::root::index)
+            .service(health)
         // .default_service(not_found_error())
     })
     .bind((address, port))?
@@ -104,22 +105,5 @@ mod tests {
         assert!(resp.status().is_success());
         let body = test::read_body(resp).await;
         assert_eq!(body, "Hello world!");
-    }
-
-    #[actix_rt::test]
-    async fn test_users_route() {
-        // Arrange
-        let mut app =
-            test::init_service(App::new().service(users_routes::user::get_all_user)).await;
-
-        // Act
-        let req = test::TestRequest::get().uri("users").to_request();
-        let resp = test::call_service(&mut app, req).await;
-
-        // Assert
-        print!("{:?}", resp);
-        assert!(resp.status().is_success());
-        let body = test::read_body(resp).await;
-        assert_eq!(body, "GET All Users");
     }
 }

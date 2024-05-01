@@ -53,6 +53,20 @@ impl SqliteDB {
             .await;
     }
 
+    // GET One User with Username
+    pub async fn get_one_user_username(
+        &self,
+        username: &str,
+    ) -> Result<Option<UserServer>, sqlx::Error> {
+        // SQL query select one user from the database using id
+        let sql = queries::UserQueries::GetOneUserWithUsername.convert_to_str();
+
+        return sqlx::query_as::<_, UserServer>(sql)
+            .bind(username)
+            .fetch_optional(&self.db)
+            .await;
+    }
+
     // GET All Users
     pub async fn get_all_user(&self) -> Result<Vec<UserServer>, sqlx::Error> {
         // SQL query select one user from the database using id

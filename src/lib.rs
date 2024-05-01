@@ -2,6 +2,7 @@ pub mod controllers {
     pub mod ui_controller {
         pub mod index;
     }
+    pub mod login;
     pub mod user;
 }
 
@@ -19,6 +20,7 @@ pub mod domain {
 
 pub mod routes {
     pub mod app_routes;
+    pub mod login_routes;
     pub mod root_routes;
     pub mod ui_routes;
     pub mod users_routes;
@@ -28,6 +30,10 @@ pub mod models {
     pub mod queries;
     pub mod schema;
     pub mod user_model;
+}
+
+pub mod modules {
+    pub mod password_hash;
 }
 
 pub mod utils {

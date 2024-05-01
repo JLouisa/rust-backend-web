@@ -1,33 +1,23 @@
 use crate::db::sqlite::SqliteDB;
 use crate::domain::datatypes::{UserClientIn, UserServer};
 use actix_web::*;
-use serde::{Deserialize, Serialize};
-use sqlx::{self, FromRow};
 
 // this function could be located in a different module
 pub fn app_config(config: &mut web::ServiceConfig) {
     config.service(
         web::scope("/app")
-            .service(app::app)
-            .service(app::post_app)
-            .service(app::sqlite_all_one)
-            .service(app::sqlite_get_one)
-            .service(app::sqlite_create_one)
-            .service(app::sqlite_update_one)
-            .service(app::sqlite_transaction)
-            .service(app::sqlite_delete_one),
+            .service(sqlite::app)
+            .service(sqlite::post_app)
+            .service(sqlite::sqlite_all_one)
+            .service(sqlite::sqlite_get_one)
+            .service(sqlite::sqlite_create_one)
+            .service(sqlite::sqlite_update_one)
+            .service(sqlite::sqlite_transaction)
+            .service(sqlite::sqlite_delete_one),
     );
 }
 
-#[derive(Serialize, Deserialize, FromRow, Debug)]
-pub struct User {
-    id: String,
-    username: String,
-    password: String,
-    active: bool,
-}
-
-pub mod app {
+pub mod sqlite {
     use super::*;
 
     //App
@@ -143,7 +133,7 @@ pub mod app {
                 return HttpResponse::Ok().json(user.process_for_client());
             }
             Err(err) => {
-                eprintln!("Something went Wrong with the TRansaction: {:?}", err);
+                eprintln!("Something went Wrong with the Transaction: {:?}", err);
                 return HttpResponse::InternalServerError().finish();
             }
         };
