@@ -1,4 +1,4 @@
-use crate::domain::datatypes::UserServer;
+use crate::domain::datatypes::{UserCookie, UserServer};
 use crate::utils;
 use core::convert::TryFrom;
 use dotenv::dotenv;
@@ -8,9 +8,11 @@ use pasetors::paserk::FormatAsPaserk;
 use pasetors::token::UntrustedToken;
 use pasetors::{local, version4::V4, Local};
 
+// Generate Trusted Token for Client
 pub fn generete_public_token(user: UserServer) -> String {
     dotenv().expect(".env file not found");
     let token_secret: &[u8] = utils::constants::TOKEN_SECRET.as_bytes();
+    let token_sk = utils::constants::TOKEN_SK.to_string();
 
     // Add a custom `data` claims.
     let mut claims = Claims::new().expect("Creating claim failed");
@@ -25,14 +27,42 @@ pub fn generete_public_token(user: UserServer) -> String {
         .expect("Experation claim failed");
 
     // Generate the key and encrypt the claims.
-    let token_sk = "k4.local.JvUcBYO9vWzStfoaGdvuWAEBgLJDxIq1mgVAKIQLmH8";
-    let sk = SymmetricKey::<V4>::try_from(token_sk).expect("Generating Key failed");
+    let sk = SymmetricKey::<V4>::try_from(token_sk.as_str()).expect("Generating Key failed");
 
     // Create Token
     let token =
         local::encrypt(&sk, &claims, None, Some(token_secret)).expect("Creating token failed");
 
     return token;
+}
+
+// Verify Untrusted Token from Client
+pub fn verify_token(untrusted_inc_token: &str) -> Option<UserCookie> {
+    dotenv().expect(".env file not found");
+    let token_secret: &[u8] = utils::constants::TOKEN_SECRET.as_bytes();
+    let token_sk = utils::constants::TOKEN_SK.to_string();
+
+    let validation_rules = ClaimsValidationRules::new();
+    let untrusted_token = UntrustedToken::<Local, V4>::try_from(untrusted_inc_token)
+        .expect("Parsing of Untrusted token failed");
+
+    // Generate the key and encrypt the claims.
+    let sk = SymmetricKey::<V4>::try_from(token_sk.as_str()).expect("Generating Key failed");
+    let trusted_token = local::decrypt(
+        &sk,
+        &untrusted_token,
+        &validation_rules,
+        None,
+        Some(token_secret),
+    );
+    match trusted_token {
+        Ok(token) => match token.payload_claims().to_owned() {
+            Some(info) => Some(UserCookie::new(info)),
+            None => None,
+        },
+        Err(_) => None,
+    }
+    // .expect("Untrusted token failed");
 }
 
 pub fn generete_public_token_test() {
@@ -75,8 +105,10 @@ pub fn generete_public_token_test() {
     // NOTE: Custom claims, defined through `add_additional()`, are not validated. This must be done
     // manually.
     let validation_rules = ClaimsValidationRules::new();
+
     let untrusted_token =
         UntrustedToken::<Local, V4>::try_from(&token).expect("Untrusted token failed");
+
     let trusted_token = local::decrypt(
         &sk,
         &untrusted_token,
@@ -85,6 +117,7 @@ pub fn generete_public_token_test() {
         Some(token_secret),
     )
     .expect("Untrusted token failed");
+
     assert_eq!(&claims, trusted_token.payload_claims().unwrap());
 
     let claims = trusted_token.payload_claims().unwrap();

@@ -6,6 +6,7 @@ lazy_static! {
     pub static ref DATABASE_URL: String = set_database_url();
     pub static ref DATABASE_SQLITE_URL: String = set_database_sqlite_url();
     pub static ref TOKEN_SECRET: String = set_token_secret();
+    pub static ref TOKEN_SK: String = set_token_sk();
 }
 
 // Get the address from the .env file
@@ -44,5 +45,11 @@ fn set_database_sqlite_url() -> String {
 fn set_token_secret() -> String {
     dotenv::dotenv().ok();
     let token_secret: String = std::env::var("TOKEN_SECRET").expect("TOKEN_SECRET must be set");
+    return token_secret;
+}
+
+fn set_token_sk() -> String {
+    dotenv::dotenv().ok();
+    let token_secret: String = std::env::var("TOKEN_SK").expect("TOKEN_SK must be set");
     return token_secret;
 }

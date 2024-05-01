@@ -1,5 +1,7 @@
 use crate::modules::password_hash;
 use actix_web::cookie::time;
+use actix_web::cookie::Cookie;
+use pasetors::claims::Claims;
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 use uuid::Uuid;
@@ -56,6 +58,25 @@ pub struct UserClientOut {
     pub hashed_password: String,
     pub active: bool,
 }
+#[derive(Serialize, Deserialize, Debug)]
+pub struct UserCookie {
+    pub user_id: String,
+    pub username: String,
+}
+impl UserCookie {
+    pub fn new(cookie: &Claims) -> Self {
+        UserCookie {
+            user_id: cookie
+                .get_claim("user_id")
+                .expect("Failed to get user_id")
+                .to_string(),
+            username: cookie
+                .get_claim("username")
+                .expect("Failed to get user_id")
+                .to_string(),
+        }
+    }
+}
 
 pub enum LoginTypes {
     Succesfull,
@@ -68,6 +89,34 @@ pub enum CookieVariations {
     Personalization,
     Payment,
     NAW,
+}
+impl CookieVariations {
+    pub fn get_name(&self) -> String {
+        match self {
+            CookieVariations::Auth => "auth".to_string(),
+            CookieVariations::ShoppingCarts => "shopping_cart".to_string(),
+            CookieVariations::Personalization => "personalization".to_string(),
+            CookieVariations::Payment => "payment".to_string(),
+            CookieVariations::NAW => "naw".to_string(),
+        }
+    }
+    pub fn generate_cookie(&self, setting: Settings) -> Cookie {
+        match self {
+            &CookieVariations::Auth => Cookie::build(self.get_name(), setting.value)
+                .path("/")
+                .expires(setting.time.to_owned())
+                .secure(true)
+                .http_only(false)
+                .finish(),
+            &CookieVariations::ShoppingCarts => Cookie::build(self.get_name(), setting.value)
+                .path("/")
+                .expires(setting.time.to_owned())
+                .secure(true)
+                .http_only(false)
+                .finish(),
+            _ => unreachable!("Cookies section should be unreachable"),
+        }
+    }
 }
 
 pub struct Settings {

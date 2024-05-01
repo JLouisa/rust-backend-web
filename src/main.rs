@@ -3,12 +3,16 @@ use dotenv::dotenv;
 use lib::{
     db::sqlite::SqliteDB,
     models::schema::create_schema,
+    modules::middleware,
+    modules::token_pub::generete_public_token_test,
     routes::{app_routes, login_routes, root_routes, ui_routes, users_routes},
     utils,
 };
 use serde::Serialize;
-
 use sqlx::migrate::MigrateDatabase;
+
+use actix_session::{storage::SessionStore, Session, SessionMiddleware};
+use actix_web::{cookie::Key, Error};
 
 // #[macro_use]
 // extern crate diesel_migrations;
@@ -72,6 +76,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(app_data_sqlx.clone())
             .wrap(Logger::default())
+            .wrap(middleware::CheckLogin)
             .configure(login_routes::login_config)
             .configure(app_routes::app_config)
             .configure(ui_routes::ui_config)

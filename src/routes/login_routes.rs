@@ -1,5 +1,5 @@
 use crate::db::sqlite::SqliteDB;
-use crate::domain::datatypes::{UserClientIn, UserClientSignIn};
+use crate::domain::datatypes::UserClientSignIn;
 use crate::{controllers, view};
 use actix_web::*;
 
