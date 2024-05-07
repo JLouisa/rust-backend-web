@@ -1,18 +1,20 @@
-use actix_web::{get, middleware::Logger, web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{
+    cookie::Key, get, middleware::Logger, web, App, Error, HttpRequest, HttpResponse, HttpServer,
+    Responder,
+};
 use dotenv::dotenv;
 use lib::{
     db::sqlite::SqliteDB,
+    domain::shops::{Shop, ShopConfig},
     models::schema::create_schema,
     modules::middleware,
-    modules::token_pub::generete_public_token_test,
     routes::{app_routes, login_routes, root_routes, ui_routes, users_routes},
     utils,
 };
 use serde::Serialize;
 use sqlx::migrate::MigrateDatabase;
 
-use actix_session::{storage::SessionStore, Session, SessionMiddleware};
-use actix_web::{cookie::Key, Error};
+use crate::utils::constants::SHOP_CONFIGS;
 
 // #[macro_use]
 // extern crate diesel_migrations;
@@ -37,6 +39,50 @@ async fn health() -> impl Responder {
 //         message: "Not Found".to_string(),
 //     })
 // }
+
+async fn shop_handler(req: HttpRequest) -> HttpResponse {
+    let shop_configs = SHOP_CONFIGS.lock().unwrap(); // Consider using a more fault-tolerant approach
+    let domain = req
+        .connection_info()
+        .host()
+        .split(':')
+        .next()
+        .unwrap_or_default()
+        .to_string();
+
+    match shop_configs.get(&domain) {
+        Some(config) => HttpResponse::Ok().body(format!(
+            "Welcome to {}, selling {}",
+            config.name, config.product_type
+        )),
+        None => HttpResponse::NotFound().body("Shop not found"),
+    }
+}
+
+async fn load_shop_configs(database_url: &str) -> Result<(), sqlx::Error> {
+    let pool = SqliteDB::new(database_url).await;
+    let mut configs = SHOP_CONFIGS.lock().unwrap();
+    let shops = SqliteDB::get_all_shop_domains(&pool).await;
+
+    match shops {
+        Ok(shops) => {
+            for shop in shops {
+                configs.insert(
+                    shop.domain.to_string(),
+                    Shop {
+                        name: shop.name,
+                        product_type: shop.product_type,
+                    },
+                );
+            }
+            Ok(())
+        }
+        Err(e) => {
+            eprintln!("Failed to load shop configurations: {}", e);
+            return Err(e);
+        }
+    }
+}
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -70,6 +116,10 @@ async fn main() -> std::io::Result<()> {
 
     let database_sqlx = SqliteDB::new(&db_sqlite_url).await;
     let app_data_sqlx = web::Data::new(database_sqlx);
+
+    load_shop_configs(&db_sqlite_url)
+        .await
+        .expect("Failed to load shop configurations");
 
     // Start the server
     HttpServer::new(move || {

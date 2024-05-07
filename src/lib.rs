@@ -15,6 +15,7 @@ pub mod db {
 
 pub mod domain {
     pub mod datatypes;
+    pub mod shops;
     pub mod user_domain;
 }
 

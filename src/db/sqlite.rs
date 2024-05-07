@@ -1,7 +1,7 @@
 use actix_web::*;
 use sqlx::{self, sqlite::SqlitePoolOptions, Pool, Sqlite};
 
-use crate::domain::datatypes::UserServer;
+use crate::domain::{datatypes::UserServer, shops::ShopConfig};
 use crate::models::queries;
 
 #[derive(Debug, thiserror::Error)]
@@ -176,5 +176,15 @@ impl SqliteDB {
 
         // Fetch the updated user from the database
         return self.get_one_user(&user.user_id).await;
+    }
+
+    // GET All Shop Domains
+    pub async fn get_all_shop_domains(&self) -> Result<Vec<ShopConfig>, sqlx::Error> {
+        // SQL query select one user from the database using id
+        let sql = queries::ShopQueries::GetAllShops.convert_to_str();
+
+        return sqlx::query_as::<_, ShopConfig>(sql)
+            .fetch_all(&self.db)
+            .await;
     }
 }

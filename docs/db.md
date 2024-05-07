@@ -44,3 +44,27 @@ SQLITE Schema migration v1
         .await
         .expect("Migration failed");
 ```
+
+SQLX - Migration Setup
+
+````rust
+1. $cargo install sqlx-cli
+2. $sqlx migrate add create_initial_tables
+3. Writing Migration Scripts
+    Modify the newly created migration file in the migrations folder. If you are adding a products table, you might include SQL like this:
+    ```sql
+        -- Migration Up
+    CREATE TABLE products (
+        product_id INTEGER PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        price DECIMAL NOT NULL,
+        in_stock BOOLEAN DEFAULT TRUE
+    );
+
+    -- Migration Down
+    DROP TABLE products;
+    ```
+4. $sqlx migrate run
+
+````

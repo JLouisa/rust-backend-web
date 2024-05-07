@@ -1,4 +1,8 @@
 use lazy_static::lazy_static;
+use std::collections::HashMap;
+use std::sync::Mutex;
+
+use crate::domain::shops::Shop;
 
 lazy_static! {
     pub static ref ADDRESS: String = set_address();
@@ -7,6 +11,7 @@ lazy_static! {
     pub static ref DATABASE_SQLITE_URL: String = set_database_sqlite_url();
     pub static ref TOKEN_SECRET: String = set_token_secret();
     pub static ref TOKEN_SK: String = set_token_sk();
+    pub static ref SHOP_CONFIGS: Mutex<HashMap<String, Shop>> = Mutex::new(HashMap::new());
 }
 
 // Get the address from the .env file

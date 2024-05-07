@@ -137,6 +137,21 @@ impl CookieVariations {
             _ => unreachable!("Cookies section should be unreachable"),
         }
     }
+    pub fn create_user_info(&self, cookie: &Claims) -> UserCookie {
+        match self {
+            &CookieVariations::Auth => UserCookie {
+                user_id: cookie
+                    .get_claim("user_id")
+                    .expect("Failed to get user_id")
+                    .to_string(),
+                username: cookie
+                    .get_claim("username")
+                    .expect("Failed to get user_id")
+                    .to_string(),
+            },
+            _ => unreachable!("Cookies section should be unreachable"),
+        }
+    }
 }
 
 pub struct Settings {

@@ -8,7 +8,7 @@ pub enum UserQueries {
 }
 
 impl UserQueries {
-    pub fn convert_to_str(&self) -> &str {
+    pub fn convert_to_str(&self) -> &'static str {
         match self {
             UserQueries::CreateOneUser => {
                 "INSERT INTO users (user_id, username, hashed_password, active) VALUES (?, ?, ?, ?)"
@@ -20,6 +20,24 @@ impl UserQueries {
                 "UPDATE users SET username = ?, hashed_password = ?, active = ? WHERE user_id = ?"
             }
             UserQueries::DeleteOneUser => "DELETE FROM users WHERE user_id = ?",
+        }
+    }
+}
+
+pub enum ShopQueries {
+    GetAllShops,
+    CreateOneShop,
+    GetOneShop,
+    UpdateOneShop,
+    DeleteOneShop,
+}
+impl ShopQueries {
+    pub fn convert_to_str(&self) -> &'static str {
+        match self {
+            ShopQueries::GetAllShops => {
+                "SELECT domain, name, product_type FROM shop_configurations"
+            }
+            _ => unreachable!("ShopQueries variant not implemented"),
         }
     }
 }
