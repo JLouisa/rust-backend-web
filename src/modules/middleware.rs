@@ -56,7 +56,7 @@ where
             the_user = None;
         }
 
-        let unauthorized_paths = vec!["/login", "/register"];
+        let unauthorized_paths = vec!["/login", "/register", "/shop", "/shop2"];
         if the_user.is_none() && !unauthorized_paths.contains(&request.path()) {
             let (request, _pl) = request.into_parts();
 

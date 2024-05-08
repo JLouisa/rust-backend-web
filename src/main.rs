@@ -7,7 +7,10 @@ use lib::{
     db::sqlite::SqliteDB,
     domain::shops::{Shop, ShopConfig},
     models::schema::create_schema,
-    modules::middleware,
+    modules::{
+        middleware,
+        // middleware_domain::ShopLoader
+    },
     routes::{app_routes, login_routes, root_routes, ui_routes, users_routes},
     utils,
 };
@@ -15,6 +18,10 @@ use serde::Serialize;
 use sqlx::migrate::MigrateDatabase;
 
 use crate::utils::constants::SHOP_CONFIGS;
+
+use actix_web::dev::Service as _;
+use futures_util::future::{FutureExt, LocalBoxFuture};
+use std::task::{Context, Poll};
 
 // #[macro_use]
 // extern crate diesel_migrations;
@@ -39,25 +46,6 @@ async fn health() -> impl Responder {
 //         message: "Not Found".to_string(),
 //     })
 // }
-
-async fn shop_handler(req: HttpRequest) -> HttpResponse {
-    let shop_configs = SHOP_CONFIGS.lock().unwrap(); // Consider using a more fault-tolerant approach
-    let domain = req
-        .connection_info()
-        .host()
-        .split(':')
-        .next()
-        .unwrap_or_default()
-        .to_string();
-
-    match shop_configs.get(&domain) {
-        Some(config) => HttpResponse::Ok().body(format!(
-            "Welcome to {}, selling {}",
-            config.name, config.product_type
-        )),
-        None => HttpResponse::NotFound().body("Shop not found"),
-    }
-}
 
 async fn load_shop_configs(database_url: &str) -> Result<(), sqlx::Error> {
     let pool = SqliteDB::new(database_url).await;
@@ -126,7 +114,8 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(app_data_sqlx.clone())
             .wrap(Logger::default())
-            .wrap(middleware::CheckLogin)
+            // .wrap(ShopLoader)
+            // .wrap(middleware::CheckLogin)
             .configure(login_routes::login_config)
             .configure(app_routes::app_config)
             .configure(ui_routes::ui_config)

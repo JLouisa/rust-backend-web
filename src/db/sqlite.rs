@@ -187,4 +187,14 @@ impl SqliteDB {
             .fetch_all(&self.db)
             .await;
     }
+    // GET One Shop Domain
+    pub async fn get_one_shop_domain(&self, shop: &str) -> Result<ShopConfig, sqlx::Error> {
+        // SQL query select one user from the database using id
+        let sql = queries::ShopQueries::GetOneShop.convert_to_str();
+
+        return sqlx::query_as::<_, ShopConfig>(sql)
+            .bind(shop)
+            .fetch_one(&self.db)
+            .await;
+    }
 }

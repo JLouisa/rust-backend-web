@@ -36,6 +36,7 @@ pub mod models {
 pub mod modules {
     pub mod cookie;
     pub mod middleware;
+    pub mod middleware_domain;
     pub mod password_hash;
     pub mod token_pub;
 }

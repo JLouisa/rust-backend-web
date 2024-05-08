@@ -37,6 +37,7 @@ impl ShopQueries {
             ShopQueries::GetAllShops => {
                 "SELECT domain, name, product_type FROM shop_configurations"
             }
+            ShopQueries::GetOneShop => "SELECT * FROM shop_configurations WHERE domain = ?",
             _ => unreachable!("ShopQueries variant not implemented"),
         }
     }
