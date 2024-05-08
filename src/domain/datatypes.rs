@@ -46,6 +46,31 @@ pub struct UserClientSignIn {
 }
 
 #[derive(Serialize, Deserialize, FromRow, Debug)]
+pub struct UserClientForgot {
+    pub username: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct UserPassWordReset {
+    pub password: String,
+    pub confirm_password: String,
+}
+impl UserPassWordReset {
+    fn convert_to_register(&self, name: String) -> UserClientRegister {
+        UserClientRegister {
+            username: name.to_string(),
+            password: self.password.to_string(),
+            confirm_password: self.confirm_password.to_string(),
+        }
+    }
+
+    pub fn verify_password(&self, name: String) -> Result<UserServer, ()> {
+        let user_client_register = &self.convert_to_register(name.to_string());
+        UserClientRegister::verify_password(&user_client_register)
+    }
+}
+
+#[derive(Serialize, Deserialize, FromRow, Debug)]
 pub struct UserClientRegister {
     pub username: String,
     pub password: String,
@@ -127,13 +152,13 @@ impl CookieVariations {
                 // .domain(domain.to_string())
                 .expires(setting.time.to_owned())
                 .secure(true)
-                .http_only(false)
+                .http_only(false) // should be true, so js cannot access the cookie
                 .finish(),
             &CookieVariations::ShoppingCarts => Cookie::build(self.get_name(), setting.value)
                 .path("/")
                 .expires(setting.time.to_owned())
                 .secure(true)
-                .http_only(false)
+                .http_only(false) // should be true, so js cannot access the cookie
                 .finish(),
             _ => todo!("Generate the rest of the cookies"),
         }
@@ -160,14 +185,14 @@ impl CookieVariations {
                 .expires(time::OffsetDateTime::now_utc())
                 .max_age(time::Duration::seconds(0))
                 .secure(true)
-                .http_only(false)
+                .http_only(false) // should be true, so js cannot access the cookie
                 .finish(),
             &CookieVariations::ShoppingCarts => Cookie::build(self.get_name(), "")
                 .path("/")
                 .expires(time::OffsetDateTime::now_utc())
                 .max_age(time::Duration::seconds(0))
                 .secure(true)
-                .http_only(false)
+                .http_only(false) // should be true, so js cannot access the cookie
                 .finish(),
             _ => todo!("Remove the rest of the cookies"),
         }

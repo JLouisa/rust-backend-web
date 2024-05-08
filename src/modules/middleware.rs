@@ -72,14 +72,21 @@ where
                 the_user = None;
             }
 
-            let unauthorized_paths = vec!["/login", "/register"];
-            if the_user.is_none() && !unauthorized_paths.contains(&request.path()) {
+            let unauthorized_paths = vec!["/login", "/register", "/forgot", "/reset"];
+
+            // Check if the current request path is unauthorized (should not require authentication)
+            let path = request.path();
+            let is_unauthorized = unauthorized_paths
+                .iter()
+                .any(|&p| path == p || (p.ends_with("/*") && path.starts_with(&p[..p.len() - 1])))
+                || path.starts_with("/reset/"); // Special handling for reset paths
+
+            if the_user.is_none() && !is_unauthorized {
                 let (request, _pl) = request.into_parts();
 
                 let response = HttpResponse::Found()
                     .insert_header((http::header::LOCATION, "/login"))
                     .finish()
-                    // constructed responses map to "right" body
                     .map_into_right_body();
 
                 return Box::pin(async { Ok(ServiceResponse::new(request, response)) });

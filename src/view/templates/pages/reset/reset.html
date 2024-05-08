@@ -1,0 +1,32 @@
+{% extends 'layout.html' %} {% block content -%}
+
+<section id="reset_page">
+  <h2>Reset Your Password</h2>
+  <p>{{ reset_msg }}</p>
+
+  <form action="/reset/{{username}}" method="post">
+    <div>
+      <label for="password" required>Password:</label>
+      <input
+        type="password"
+        name="password"
+        value="{{ reset_value_password }}"
+        placeholder="Password"
+        required
+      />
+    </div>
+    <div>
+      <label for="confirm_password" required>Confirm Password:</label>
+      <input
+        type="password"
+        name="confirm_password"
+        value="{{ reset_value_confirm_password }}"
+        placeholder="Confirm Password"
+        required
+      />
+    </div>
+    <button>reset</button>
+  </form>
+  <p>{{ reset_msg }}</p>
+</section>
+{% endblock content -%}

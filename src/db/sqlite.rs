@@ -131,6 +131,31 @@ impl SqliteDB {
         }
     }
 
+    // PUT One User Password
+    pub async fn update_one_user_password(
+        &self,
+        user: &UserServer,
+    ) -> Result<Option<UserServer>, sqlx::Error> {
+        // SQL query to insert the user into the database and return the inserted user
+        let sql = queries::UserQueries::UpdateOneUserPwd.convert_to_str();
+
+        match sqlx::query(sql)
+            .bind(&user.hashed_password)
+            .bind(&user.username)
+            .execute(&self.db)
+            .await
+        {
+            Ok(_) => {
+                // Await the result of get_one_user before returning it
+                return self.get_one_user_username(user.username.as_str()).await;
+            }
+            Err(err) => {
+                eprintln!("Error updating user: {:?}", err);
+                Err(err)
+            }
+        }
+    }
+
     // DELETE One User
     pub async fn delete_one_user(&self, user_id: &str) -> Result<String, sqlx::Error> {
         let sql = queries::UserQueries::DeleteOneUser.convert_to_str();

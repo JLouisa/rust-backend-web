@@ -34,6 +34,7 @@ pub mod models {
 
 pub mod modules {
     pub mod cookie;
+    pub mod email;
     pub mod middleware;
     pub mod middleware_domain;
     pub mod middleware_msg;

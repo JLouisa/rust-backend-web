@@ -1,0 +1,18 @@
+{% extends 'layout.html' %} {% block content -%}
+
+<section id="forgot_page">
+  <h2>Forgot</h2>
+  <p>{{ forgot_msg }}</p>
+
+  <form action="/forgot" method="post">
+    <div>
+      <label for="username" required>Username</label>
+      <input type="text" name="username" placeholder="Username" required />
+    </div>
+    <button>Send password reset</button>
+  </form>
+  <a href="/register">Register</a>
+
+  <p>{{ forgot_msg }}</p>
+</section>
+{% endblock content -%}

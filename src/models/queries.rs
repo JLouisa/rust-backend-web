@@ -4,6 +4,7 @@ pub enum UserQueries {
     GetOneUserWithUsername,
     GetAllUsers,
     UpdateOneUser,
+    UpdateOneUserPwd,
     DeleteOneUser,
 }
 
@@ -18,6 +19,9 @@ impl UserQueries {
             UserQueries::GetAllUsers => "SELECT * FROM users",
             UserQueries::UpdateOneUser => {
                 "UPDATE users SET username = ?, hashed_password = ?, active = ? WHERE user_id = ?"
+            }
+            UserQueries::UpdateOneUserPwd => {
+                "UPDATE users SET hashed_password = ? WHERE username = ?"
             }
             UserQueries::DeleteOneUser => "DELETE FROM users WHERE user_id = ?",
         }
