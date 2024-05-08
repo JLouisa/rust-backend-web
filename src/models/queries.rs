@@ -21,7 +21,7 @@ impl UserQueries {
                 "UPDATE users SET username = ?, hashed_password = ?, active = ? WHERE user_id = ?"
             }
             UserQueries::UpdateOneUserPwd => {
-                "UPDATE users SET hashed_password = ? WHERE username = ?"
+                "UPDATE users SET hashed_password = ? WHERE user_id = ?"
             }
             UserQueries::DeleteOneUser => "DELETE FROM users WHERE user_id = ?",
         }

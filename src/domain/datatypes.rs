@@ -36,6 +36,17 @@ impl UserServer {
             active: self.active,
         };
     }
+
+    pub fn process_for_reset(user: &UserCookie, password: String, act: bool) -> Self {
+        return UserServer {
+            user_id: user.user_id.to_string(),
+            username: user.username.to_string(),
+            hashed_password: password_hash::Password::hash_password(password.as_str())
+                .expect("Error hashing the password")
+                .get_password_string(),
+            active: act,
+        };
+    }
 }
 
 #[derive(Serialize, Deserialize, FromRow, Debug)]
@@ -56,17 +67,24 @@ pub struct UserPassWordReset {
     pub confirm_password: String,
 }
 impl UserPassWordReset {
-    fn convert_to_register(&self, name: String) -> UserClientRegister {
+    fn convert_to_register(&self, user: UserCookie) -> UserClientRegister {
         UserClientRegister {
-            username: name.to_string(),
+            username: user.username.to_string(),
             password: self.password.to_string(),
             confirm_password: self.confirm_password.to_string(),
         }
     }
 
-    pub fn verify_password(&self, name: String) -> Result<UserServer, ()> {
-        let user_client_register = &self.convert_to_register(name.to_string());
-        UserClientRegister::verify_password(&user_client_register)
+    pub fn verify_password(&self, user: &UserCookie) -> Result<UserServer, String> {
+        if self.password == self.confirm_password {
+            Ok(UserServer::process_for_reset(
+                user,
+                self.password.to_string(),
+                true,
+            ))
+        } else {
+            Err("Password not the same".to_string())
+        }
     }
 }
 
@@ -110,15 +128,19 @@ pub struct UserCookie {
 }
 impl UserCookie {
     pub fn new(cookie: &Claims) -> Self {
+        let user_id = cookie
+            .get_claim("user_id")
+            .expect("Failed to get user_id")
+            .to_string();
+        let username = cookie
+            .get_claim("username")
+            .expect("Failed to get user_id")
+            .to_string();
+
+        // After parsing the cookie, it comes with quotes, so we need to remove them
         UserCookie {
-            user_id: cookie
-                .get_claim("user_id")
-                .expect("Failed to get user_id")
-                .to_string(),
-            username: cookie
-                .get_claim("username")
-                .expect("Failed to get user_id")
-                .to_string(),
+            user_id: user_id.trim_matches('"').to_string(),
+            username: username.trim_matches('"').to_string(),
         }
     }
 }

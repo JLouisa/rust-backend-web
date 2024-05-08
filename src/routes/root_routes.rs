@@ -1,8 +1,18 @@
 use crate::domain::datatypes::UserClientSignIn;
+use crate::modules::email::EmailType;
 use crate::modules::middleware_msg::Msg;
+use crate::modules::token_pub;
 use crate::{controllers, view};
 use actix_web::web::{self, ReqData};
 use actix_web::*;
+
+use crate::{
+    db::sqlite::SqliteDB,
+    domain::datatypes::{
+        CookieVariations, UserClientForgot, UserClientRegister, UserPassWordReset,
+    },
+    modules::{email::EmailSettings, middleware_domain::Shop},
+};
 
 // this function could be located in a different module
 pub fn root_config(config: &mut web::ServiceConfig) {
@@ -29,13 +39,6 @@ pub fn root_config(config: &mut web::ServiceConfig) {
 
 // Root Routes Handlers (Controller)
 pub mod root {
-    use crate::{
-        db::sqlite::SqliteDB,
-        domain::datatypes::{
-            CookieVariations, UserClientForgot, UserClientRegister, UserPassWordReset,
-        },
-        modules::middleware_domain::Shop,
-    };
 
     use super::*;
 
@@ -199,7 +202,7 @@ pub mod root {
 
         context.insert("forgot_msg", "Please fill in your username to continue");
         context.insert("forgot_value_username", "");
-        context.insert("forgot_msg", "");
+        context.insert("forgot_failed_msg", "");
         match view::setup::TEMPLATES.render("pages/forgot/forgot.html", &context) {
             Ok(content) => return HttpResponse::Ok().body(content),
             Err(err) => {
@@ -214,18 +217,26 @@ pub mod root {
     pub async fn forgot_post(
         db: web::Data<SqliteDB>,
         user_info: web::Form<UserClientForgot>,
+        request: HttpRequest,
     ) -> impl Responder {
         let username = user_info.into_inner();
+        let domain = request.connection_info().host().to_string();
 
         let user_db = db.get_one_user_username(&username.username).await;
 
         match user_db {
             Ok(user) => match user {
                 Some(user) => {
-                    let username = UserClientForgot {
-                        username: user.username.to_string(),
-                    };
-                    let result = crate::modules::email::send_password_reset_email(&username).await;
+                    let token = token_pub::generete_public_token(&user);
+                    let settings = crate::utils::constants::get_email_settings();
+                    let user_email = "jissicko@gmail.com".to_string(); // Hardcoded for now - will be user.email
+                    let email_settings = EmailSettings::password_reset_template(
+                        user_email,
+                        settings.email,
+                        domain,
+                        token,
+                    );
+                    let result = EmailType::PasswordReset.send_email(&email_settings).await;
 
                     match result {
                         Ok(_) => {
@@ -235,7 +246,7 @@ pub mod root {
                                 .insert("forgot_msg", "Please fill in your username to continue");
                             context.insert("forgot_value_username", "");
                             context.insert(
-                                "forgot_msg",
+                                "forgot_failed_msg",
                                 "Email sent successfully. Please check your email.",
                             );
                             match view::setup::TEMPLATES
@@ -255,7 +266,10 @@ pub mod root {
                             context
                                 .insert("forgot_msg", "Please fill in your username to continue");
                             context.insert("forgot_value_username", user.username.as_str());
-                            context.insert("forgot_msg", "Something went wrong. Please try again.");
+                            context.insert(
+                                "forgot_failed_msg",
+                                "Something went wrong. Please try again.",
+                            );
                             match view::setup::TEMPLATES
                                 .render("pages/forgot/forgot.html", &context)
                             {
@@ -277,17 +291,22 @@ pub mod root {
         }
     }
 
-    #[get("/reset/{username}")]
+    #[get("/reset/{token}")]
     pub async fn reset_page(path: web::Path<String>) -> HttpResponse {
-        let user = path.into_inner();
+        let token = path.into_inner();
+
+        let verified_token = token_pub::verify_token(&token);
+        if verified_token.is_none() {
+            return HttpResponse::InternalServerError().finish();
+        }
 
         let mut context = tera::Context::new();
 
         context.insert("reset_msg", "Reset Password");
-        context.insert("username", user.as_str());
+        context.insert("token", token.as_str());
         context.insert("reset_value_password", "");
         context.insert("reset_value_confirm_password", "");
-        context.insert("reset_msg", "");
+        context.insert("reset_failed_msg", "");
         match view::setup::TEMPLATES.render("pages/reset/reset.html", &context) {
             Ok(content) => return HttpResponse::Ok().body(content),
             Err(err) => {
@@ -297,84 +316,50 @@ pub mod root {
         }
     }
 
-    // POST Reset info with remember field optional
-    #[post("/reset/{username}")]
+    #[post("/reset/{token}")]
     pub async fn reset_post(
         db: web::Data<SqliteDB>,
         path: web::Path<String>,
         info: web::Form<UserPassWordReset>,
     ) -> impl Responder {
-        let username = path.into_inner();
+        let token = path.into_inner();
         let pwds = info.into_inner();
+        let verified_token = token_pub::verify_token(&token);
 
-        let new_info = UserPassWordReset::verify_password(&pwds, username.to_string());
+        let the_token = match verified_token {
+            Some(token) => token,
+            None => return HttpResponse::InternalServerError().finish(),
+        };
 
-        match new_info {
-            Ok(user) => {
-                let result = db.update_one_user_password(&user).await;
+        let user = match UserPassWordReset::verify_password(&pwds, &the_token) {
+            Ok(user) => user,
+            Err(_) => return render_reset_page(&token, "Passwords do not match"),
+        };
 
-                match result {
-                    Ok(user) => {
-                        match user {
-                            Some(_) => HttpResponse::SeeOther()
-                                .append_header(("Location", "/login"))
-                                .finish(),
-                            None => {
-                                let mut context = tera::Context::new();
+        match db.update_one_user_password(&user).await {
+            Ok(_) => HttpResponse::SeeOther()
+                .append_header(("Location", "/login"))
+                .finish(),
+            Err(e) => render_reset_page(
+                &token,
+                format!("Something went wrong. Please try again: {}", e.to_string()).as_str(),
+            ),
+        }
+    }
 
-                                context.insert("reset_msg", "Reset Password");
-                                context.insert("username", username.as_str());
-                                context.insert("reset_value_password", "");
-                                context.insert("reset_value_confirm_password", "");
-                                context.insert("reset_msg", "User not found");
-                                match view::setup::TEMPLATES
-                                    .render("pages/reset/reset.html", &context)
-                                {
-                                    Ok(content) => return HttpResponse::Ok().body(content),
-                                    Err(err) => {
-                                        eprintln!("Error rendering reset page: {}", err);
-                                        // Return 500 Internal Server Error
-                                        return HttpResponse::InternalServerError().finish();
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    Err(_) => {
-                        let mut context = tera::Context::new();
+    fn render_reset_page(token: &str, message: &str) -> HttpResponse {
+        let mut context = tera::Context::new();
+        context.insert("reset_msg", "Reset Password");
+        context.insert("token", token);
+        context.insert("reset_value_password", "");
+        context.insert("reset_value_confirm_password", "");
+        context.insert("reset_failed_msg", message);
 
-                        context.insert("reset_msg", "Reset Password");
-                        context.insert("username", username.as_str());
-                        context.insert("reset_value_password", "");
-                        context.insert("reset_value_confirm_password", "");
-                        context.insert("reset_msg", "Something went wrong. Please try again.");
-                        match view::setup::TEMPLATES.render("pages/reset/reset.html", &context) {
-                            Ok(content) => return HttpResponse::Ok().body(content),
-                            Err(err) => {
-                                eprintln!("Error rendering reset page: {}", err);
-                                // Return 500 Internal Server Error
-                                return HttpResponse::InternalServerError().finish();
-                            }
-                        }
-                    }
-                }
-            }
-            Err(_) => {
-                let mut context = tera::Context::new();
-
-                context.insert("reset_msg", "Reset Password");
-                context.insert("username", username.as_str());
-                context.insert("reset_value_password", "");
-                context.insert("reset_value_confirm_password", "");
-                context.insert("reset_msg", "Passwords do not match");
-                match view::setup::TEMPLATES.render("pages/reset/reset.html", &context) {
-                    Ok(content) => return HttpResponse::Ok().body(content),
-                    Err(err) => {
-                        eprintln!("Error rendering reset page: {}", err);
-                        // Return 500 Internal Server Error
-                        return HttpResponse::InternalServerError().finish();
-                    }
-                }
+        match view::setup::TEMPLATES.render("pages/reset/reset.html", &context) {
+            Ok(content) => HttpResponse::Ok().body(content),
+            Err(err) => {
+                eprintln!("Error rendering reset page: {}", err);
+                HttpResponse::InternalServerError().finish()
             }
         }
     }

@@ -9,7 +9,7 @@ use pasetors::token::UntrustedToken;
 use pasetors::{local, version4::V4, Local};
 
 // Generate Trusted Token for Client
-pub fn generete_public_token(user: UserServer) -> String {
+pub fn generete_public_token(user: &UserServer) -> String {
     dotenv().expect(".env file not found");
     let token_secret: &[u8] = utils::constants::TOKEN_SECRET.as_bytes();
     let token_sk = utils::constants::TOKEN_SK.to_string();
@@ -17,10 +17,10 @@ pub fn generete_public_token(user: UserServer) -> String {
     // Add a custom `data` claims.
     let mut claims = Claims::new().expect("Creating claim failed");
     claims
-        .add_additional("user_id", user.user_id)
+        .add_additional("user_id", user.user_id.to_string())
         .expect("Addition 1 failed");
     claims
-        .add_additional("username", user.username)
+        .add_additional("username", user.username.to_string())
         .expect("Addition 1 fail");
     claims
         .expiration("2039-01-01T00:00:00+00:00")

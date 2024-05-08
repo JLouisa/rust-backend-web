@@ -17,8 +17,8 @@ lazy_static! {
     // Setup Shop Configurations
     pub static ref SHOP_CONFIGS: Mutex<HashMap<String, Shop>> = Mutex::new(HashMap::new());
     // Setup Email Constants
+    pub static ref SMTP_HOST: String = set_smtp_host();
     pub static ref EMAIL_HOST: String = set_email_host();
-    pub static ref EMAIL_USER: String = set_email_user();
     pub static ref EMAIL_PASSWORD: String = set_email_password();
 }
 
@@ -30,8 +30,8 @@ pub struct EmailSettings {
 
 pub fn get_email_settings() -> EmailSettings {
     EmailSettings {
-        host: EMAIL_HOST.clone(),
-        email: EMAIL_USER.clone(),
+        host: SMTP_HOST.clone(),
+        email: EMAIL_HOST.clone(),
         password: EMAIL_PASSWORD.clone(),
     }
 }
@@ -81,16 +81,16 @@ fn set_token_sk() -> String {
     return token_secret;
 }
 
+fn set_smtp_host() -> String {
+    dotenv::dotenv().ok();
+    let smtp_host: String = std::env::var("SMTP_HOST").expect("SMTP_HOST must be set");
+    return smtp_host;
+}
+
 fn set_email_host() -> String {
     dotenv::dotenv().ok();
     let email_host: String = std::env::var("EMAIL_HOST").expect("EMAIL_HOST must be set");
     return email_host;
-}
-
-fn set_email_user() -> String {
-    dotenv::dotenv().ok();
-    let email_user: String = std::env::var("EMAIL_USER").expect("EMAIL_USER must be set");
-    return email_user;
 }
 
 fn set_email_password() -> String {

@@ -4,7 +4,7 @@
   <h2>Reset Your Password</h2>
   <p>{{ reset_msg }}</p>
 
-  <form action="/reset/{{username}}" method="post">
+  <form action="/reset/{{token}}" method="post">
     <div>
       <label for="password" required>Password:</label>
       <input
@@ -27,6 +27,6 @@
     </div>
     <button>reset</button>
   </form>
-  <p>{{ reset_msg }}</p>
+  <p>{{ reset_failed_msg }}</p>
 </section>
 {% endblock content -%}

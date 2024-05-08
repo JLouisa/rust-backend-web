@@ -80,14 +80,14 @@ where
             match shop_configs.get(&host) {
                 Some(config) => {
                     let shop = Shop {
-                        domain: host,
+                        domain: host.to_string(),
                         name: config.name.clone(),
                         product_type: config.product_type.clone(),
                     };
-                    req.extensions_mut().insert(Some(shop));
+                    req.extensions_mut().insert((host, Some(shop)));
                 }
                 None => {
-                    req.extensions_mut().insert(None::<Shop>);
+                    req.extensions_mut().insert((host, None::<Shop>));
                 }
             }
         }

@@ -42,15 +42,18 @@ impl SqliteDB {
         return self.db.clone();
     }
 
-    // GET One User
     pub async fn get_one_user(&self, user_id: &str) -> Result<UserServer, sqlx::Error> {
-        // SQL query select one user from the database using id
+        // Use the enum to get the query string
         let sql = queries::UserQueries::GetOneUser.convert_to_str();
 
-        return sqlx::query_as::<_, UserServer>(sql)
+        // Execute the query and return the result
+        let result = sqlx::query_as::<_, UserServer>(sql)
             .bind(user_id)
             .fetch_one(&self.db)
             .await;
+
+        println!("Query result: {:?}", result); // Debug print the result or error
+        result
     }
 
     // GET One User with Username
@@ -135,19 +138,19 @@ impl SqliteDB {
     pub async fn update_one_user_password(
         &self,
         user: &UserServer,
-    ) -> Result<Option<UserServer>, sqlx::Error> {
+    ) -> Result<UserServer, sqlx::Error> {
         // SQL query to insert the user into the database and return the inserted user
         let sql = queries::UserQueries::UpdateOneUserPwd.convert_to_str();
 
         match sqlx::query(sql)
             .bind(&user.hashed_password)
-            .bind(&user.username)
+            .bind(&user.user_id)
             .execute(&self.db)
             .await
         {
             Ok(_) => {
                 // Await the result of get_one_user before returning it
-                return self.get_one_user_username(user.username.as_str()).await;
+                return self.get_one_user(user.user_id.as_str()).await;
             }
             Err(err) => {
                 eprintln!("Error updating user: {:?}", err);

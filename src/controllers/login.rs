@@ -17,7 +17,7 @@ pub async fn verify_login(db: web::Data<SqliteDB>, login_info: UserClientSignIn)
 
                 match server_password.verify_password(&login_info.password.as_str()) {
                     Ok(true) => {
-                        let token = generete_public_token(user);
+                        let token = generete_public_token(&user);
                         let cookie_settings =
                             Settings::new(token.as_str(), login_info.remember.unwrap_or(false));
                         let cookie = generate_cookie(&CookieVariations::Auth, cookie_settings);
