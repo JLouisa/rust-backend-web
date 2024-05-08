@@ -1,4 +1,4 @@
-use sqlx::{sqlite::SqliteQueryResult, SqlitePool};
+use sqlx::SqlitePool;
 use std::result::Result;
 
 pub async fn create_schema(db_url: &str) -> Result<(), sqlx::Error> {

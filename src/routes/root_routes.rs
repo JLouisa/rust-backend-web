@@ -1,5 +1,6 @@
-use crate::utils::constants::SHOP_CONFIGS;
+use crate::modules::middleware_msg::Msg;
 use crate::{controllers, view};
+use actix_web::web::{self, ReqData};
 use actix_web::*;
 
 // this function could be located in a different module
@@ -10,7 +11,7 @@ pub fn root_config(config: &mut web::ServiceConfig) {
             .service(root::endpoints_page)
             .service(root::register_page)
             .service(root::shop_handler)
-            .service(root::shop_handler2)
+            .service(root::msg)
             .service(root::post_register)
             .service(root::echo)
             .service(root::hello)
@@ -22,7 +23,7 @@ pub fn root_config(config: &mut web::ServiceConfig) {
 pub mod root {
     use crate::{
         db::sqlite::SqliteDB, domain::datatypes::UserClientRegister,
-        modules::middleware_domain::get_shop_domain,
+        modules::middleware_domain::Shop,
     };
 
     use super::*;
@@ -118,41 +119,27 @@ pub mod root {
     }
 
     #[get("/shop")]
-    async fn shop_handler(req: HttpRequest) -> HttpResponse {
-        let shop = get_shop_domain(req).await;
-
-        match shop.1 {
-            Some(config) => HttpResponse::Ok().body(format!(
-                "Welcome to {}, selling {} at domain {}",
-                config.name, config.product_type, shop.0
-            )),
-            None => HttpResponse::NotFound().body(format!("Shop not found for domain {}", shop.0)),
+    async fn shop_handler(shop: Option<ReqData<Option<Shop>>>) -> HttpResponse {
+        match shop {
+            Some(shop) => match shop.into_inner() {
+                Some(shop) => HttpResponse::Ok().body(format!(
+                    "Welcome to {}, selling {}",
+                    shop.name, shop.product_type
+                )),
+                None => HttpResponse::NotFound().body("No shops found."),
+            },
+            None => HttpResponse::NotFound().body("No shops found."),
         }
     }
 
-    #[get("/shop2")]
-    async fn shop_handler2(req: HttpRequest) -> HttpResponse {
-        // Extract hostname from the request
-        let host = req
-            .headers()
-            .get("host")
-            .map(|v| v.to_str().unwrap_or_default())
-            .unwrap_or_default()
-            .to_string();
-
-        // Log the hostname for debugging or tracking
-        println!("Request received for host: {}", host);
-
-        // Access the global configuration for shops
-        let shop_configs = SHOP_CONFIGS.lock().unwrap(); // Using a mutex to guard global state
-        let domain = host.split(':').next().unwrap_or_default().to_string();
-
-        match shop_configs.get(&domain) {
-            Some(config) => HttpResponse::Ok().body(format!(
-                "Welcome to {}, selling {} at domain {}",
-                config.name, config.product_type, domain
-            )),
-            None => HttpResponse::NotFound().body(format!("Shop not found for domain {}", domain)),
+    // wrap route in our middleware factory
+    #[get("/msg")]
+    async fn msg(msg: Option<ReqData<Msg>>) -> HttpResponse {
+        if let Some(msg_data) = msg {
+            let Msg(message) = msg_data.into_inner();
+            HttpResponse::Ok().body(message)
+        } else {
+            HttpResponse::InternalServerError().body("No message found.")
         }
     }
 

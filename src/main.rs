@@ -1,15 +1,13 @@
-use actix_web::{
-    cookie::Key, get, middleware::Logger, web, App, Error, HttpRequest, HttpResponse, HttpServer,
-    Responder,
-};
+use actix_web::{get, middleware::Logger, web, App, HttpResponse, HttpServer, Responder};
 use dotenv::dotenv;
 use lib::{
     db::sqlite::SqliteDB,
-    domain::shops::{Shop, ShopConfig},
+    domain::shops::Shop,
     models::schema::create_schema,
     modules::{
         middleware,
-        // middleware_domain::ShopLoader
+        middleware_domain::AddShopDomain, // middleware_domain::ShopLoader
+        middleware_msg::AddMsg,
     },
     routes::{app_routes, login_routes, root_routes, ui_routes, users_routes},
     utils,
@@ -18,10 +16,6 @@ use serde::Serialize;
 use sqlx::migrate::MigrateDatabase;
 
 use crate::utils::constants::SHOP_CONFIGS;
-
-use actix_web::dev::Service as _;
-use futures_util::future::{FutureExt, LocalBoxFuture};
-use std::task::{Context, Poll};
 
 // #[macro_use]
 // extern crate diesel_migrations;
@@ -109,13 +103,35 @@ async fn main() -> std::io::Result<()> {
         .await
         .expect("Failed to load shop configurations");
 
+    {
+        let mut configs = SHOP_CONFIGS.lock().unwrap();
+        configs.insert(
+            "localhost:3000".to_string(),
+            Shop {
+                name: "Localhost Shop".to_string(),
+                product_type: "Localhost Product".to_string(),
+            },
+        );
+        configs.insert(
+            "honeydragons.com".to_string(),
+            Shop {
+                name: "honeydragons Shop".to_string(),
+                product_type: "Fitness Products".to_string(),
+            },
+        );
+    }
+
+    // Log the server start
+    log::info!("starting HTTP server at http://localhost:{}", &port);
+
     // Start the server
     HttpServer::new(move || {
         App::new()
             .app_data(app_data_sqlx.clone())
             .wrap(Logger::default())
-            // .wrap(ShopLoader)
-            // .wrap(middleware::CheckLogin)
+            .wrap(AddMsg::enabled())
+            .wrap(AddShopDomain::enabled())
+            .wrap(middleware::CheckLogin::disabled())
             .configure(login_routes::login_config)
             .configure(app_routes::app_config)
             .configure(ui_routes::ui_config)

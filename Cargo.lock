@@ -675,6 +675,7 @@ dependencies = [
  "futures",
  "futures-util",
  "lazy_static",
+ "log",
  "pasetors",
  "r2d2",
  "serde",

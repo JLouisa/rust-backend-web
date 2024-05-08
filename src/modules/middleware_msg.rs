@@ -7,15 +7,14 @@ use actix_web::{
     dev::{Service, ServiceRequest, ServiceResponse, Transform},
     Error, HttpMessage,
 };
-
-use crate::utils::constants::SHOP_CONFIGS;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug)]
-pub struct AddShopDomain {
+pub struct AddMsg {
     enabled: bool,
 }
 
-impl AddShopDomain {
+impl AddMsg {
     pub fn enabled() -> Self {
         Self { enabled: true }
     }
@@ -25,37 +24,33 @@ impl AddShopDomain {
     }
 }
 
-impl<S, B> Transform<S, ServiceRequest> for AddShopDomain
+impl<S, B> Transform<S, ServiceRequest> for AddMsg
 where
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = actix_web::Error>,
 {
     type Response = ServiceResponse<B>;
     type Error = Error;
     type Future = Ready<Result<Self::Transform, Self::InitError>>;
-    type Transform = AddShopDomainService<S>;
+    type Transform = AddMsgService<S>;
     type InitError = ();
 
     fn new_transform(&self, service: S) -> Self::Future {
-        ready(Ok(AddShopDomainService {
+        ready(Ok(AddMsgService {
             service,
             enabled: self.enabled,
         }))
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct Shop {
-    pub domain: String,
-    pub name: String,
-    pub product_type: String,
-}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Msg(pub String);
 
-pub struct AddShopDomainService<S> {
+pub struct AddMsgService<S> {
     service: S,
     enabled: bool,
 }
 
-impl<S, B> Service<ServiceRequest> for AddShopDomainService<S>
+impl<S, B> Service<ServiceRequest> for AddMsgService<S>
 where
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = actix_web::Error>,
 {
@@ -70,26 +65,10 @@ where
     fn call(&self, req: ServiceRequest) -> Self::Future {
         log::info!("request is passing through the AddMsg middleware");
 
-        // insert data into extensions if enabled
         if self.enabled {
-            let host = req.connection_info().host().to_string();
-
-            // Using a mutex to guard global state
-            let shop_configs = SHOP_CONFIGS.lock().unwrap();
-
-            match shop_configs.get(&host) {
-                Some(config) => {
-                    let shop = Shop {
-                        domain: host,
-                        name: config.name.clone(),
-                        product_type: config.product_type.clone(),
-                    };
-                    req.extensions_mut().insert(Some(shop));
-                }
-                None => {
-                    req.extensions_mut().insert(None::<Shop>);
-                }
-            }
+            // insert data into extensions if enabled
+            req.extensions_mut()
+                .insert(Msg("Hello from Middleware!".to_owned()));
         }
 
         self.service.call(req)
