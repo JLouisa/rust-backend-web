@@ -124,6 +124,7 @@ impl CookieVariations {
         match self {
             &CookieVariations::Auth => Cookie::build(self.get_name(), setting.value)
                 .path("/")
+                // .domain(domain.to_string())
                 .expires(setting.time.to_owned())
                 .secure(true)
                 .http_only(false)
@@ -134,7 +135,7 @@ impl CookieVariations {
                 .secure(true)
                 .http_only(false)
                 .finish(),
-            _ => unreachable!("Cookies section should be unreachable"),
+            _ => todo!("Generate the rest of the cookies"),
         }
     }
     pub fn create_user_info(&self, cookie: &Claims) -> UserCookie {
@@ -149,7 +150,26 @@ impl CookieVariations {
                     .expect("Failed to get user_id")
                     .to_string(),
             },
-            _ => unreachable!("Cookies section should be unreachable"),
+            _ => todo!("Create the rest of the cookies"),
+        }
+    }
+    pub fn remove_cookie(&self) -> Cookie {
+        match self {
+            &CookieVariations::Auth => Cookie::build(self.get_name(), "")
+                .path("/")
+                .expires(time::OffsetDateTime::now_utc())
+                .max_age(time::Duration::seconds(0))
+                .secure(true)
+                .http_only(false)
+                .finish(),
+            &CookieVariations::ShoppingCarts => Cookie::build(self.get_name(), "")
+                .path("/")
+                .expires(time::OffsetDateTime::now_utc())
+                .max_age(time::Duration::seconds(0))
+                .secure(true)
+                .http_only(false)
+                .finish(),
+            _ => todo!("Remove the rest of the cookies"),
         }
     }
 }

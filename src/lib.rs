@@ -21,7 +21,6 @@ pub mod domain {
 
 pub mod routes {
     pub mod app_routes;
-    pub mod login_routes;
     pub mod root_routes;
     pub mod ui_routes;
     pub mod users_routes;

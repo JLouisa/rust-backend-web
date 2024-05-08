@@ -1,3 +1,4 @@
+use crate::domain::datatypes::UserClientSignIn;
 use crate::modules::middleware_msg::Msg;
 use crate::{controllers, view};
 use actix_web::web::{self, ReqData};
@@ -9,6 +10,9 @@ pub fn root_config(config: &mut web::ServiceConfig) {
         web::scope("")
             .service(root::index_page)
             .service(root::endpoints_page)
+            .service(root::login_page)
+            .service(root::login_post)
+            .service(root::logout)
             .service(root::register_page)
             .service(root::shop_handler)
             .service(root::msg)
@@ -22,7 +26,8 @@ pub fn root_config(config: &mut web::ServiceConfig) {
 // Root Routes Handlers (Controller)
 pub mod root {
     use crate::{
-        db::sqlite::SqliteDB, domain::datatypes::UserClientRegister,
+        db::sqlite::SqliteDB,
+        domain::datatypes::{CookieVariations, UserClientRegister},
         modules::middleware_domain::Shop,
     };
 
@@ -141,6 +146,44 @@ pub mod root {
         } else {
             HttpResponse::InternalServerError().body("No message found.")
         }
+    }
+
+    #[get("/login")]
+    pub async fn login_page() -> HttpResponse {
+        let mut context = tera::Context::new();
+
+        context.insert("login_msg", "Please login to continue");
+        context.insert("login_value_username", "");
+        context.insert("login_value_password", "");
+        context.insert("login_failed_msg", "");
+        match view::setup::TEMPLATES.render("pages/login/login.html", &context) {
+            Ok(content) => return HttpResponse::Ok().body(content),
+            Err(err) => {
+                eprintln!("Error rendering index page: {}", err);
+                return HttpResponse::InternalServerError().finish(); // Return 500 Internal Server Error
+            }
+        }
+    }
+
+    // POST Login info with remember field optional
+    #[post("/login")]
+    pub async fn login_post(
+        db: web::Data<SqliteDB>,
+        login_info: web::Form<UserClientSignIn>,
+    ) -> impl Responder {
+        let user = login_info.into_inner();
+
+        controllers::login::verify_login(db, user).await
+    }
+
+    // Logout
+    #[get("/logout")]
+    pub async fn logout() -> HttpResponse {
+        let cookie = CookieVariations::Auth.remove_cookie();
+        HttpResponse::SeeOther()
+            .append_header(("Location", "/login"))
+            .cookie(cookie)
+            .finish()
     }
 
     //Hello

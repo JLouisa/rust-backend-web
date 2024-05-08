@@ -9,7 +9,7 @@ use lib::{
         middleware_domain::AddShopDomain, // middleware_domain::ShopLoader
         middleware_msg::AddMsg,
     },
-    routes::{app_routes, login_routes, root_routes, ui_routes, users_routes},
+    routes::{app_routes, root_routes, ui_routes, users_routes},
     utils,
 };
 use serde::Serialize;
@@ -131,8 +131,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(Logger::default())
             .wrap(AddMsg::enabled())
             .wrap(AddShopDomain::enabled())
-            .wrap(middleware::CheckLogin::disabled())
-            .configure(login_routes::login_config)
+            .wrap(middleware::CheckLogin::enabled())
             .configure(app_routes::app_config)
             .configure(ui_routes::ui_config)
             .configure(users_routes::users_config)
