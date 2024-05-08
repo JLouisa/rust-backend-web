@@ -20,6 +20,8 @@ lazy_static! {
     pub static ref SMTP_HOST: String = set_smtp_host();
     pub static ref EMAIL_HOST: String = set_email_host();
     pub static ref EMAIL_PASSWORD: String = set_email_password();
+    // Setup Redis Constants
+    pub static ref REDIS_URL: String = set_redis_url();
 }
 
 pub struct EmailSettings {
@@ -98,4 +100,10 @@ fn set_email_password() -> String {
     let email_password: String =
         std::env::var("EMAIL_PASSWORD").expect("EMAIL_PASSWORD must be set");
     return email_password;
+}
+
+fn set_redis_url() -> String {
+    dotenv::dotenv().ok();
+    let redis_url: String = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
+    return redis_url;
 }

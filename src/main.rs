@@ -8,6 +8,7 @@ use lib::{
         middleware,
         middleware_domain::AddShopDomain, // middleware_domain::ShopLoader
         middleware_msg::AddMsg,
+        redis::RedisDB,
     },
     routes::{app_routes, root_routes, ui_routes, users_routes},
     utils,
@@ -99,6 +100,24 @@ async fn main() -> std::io::Result<()> {
     let database_sqlx = SqliteDB::new(&db_sqlite_url).await;
     let app_data_sqlx = web::Data::new(database_sqlx);
 
+    // Setup Redis Connection
+    let redis_url = utils::constants::REDIS_URL.clone();
+    let mut redis_db = match RedisDB::new(&redis_url) {
+        Ok(db) => db,
+        Err(e) => {
+            eprintln!("Failed to connect to Redis: {}", e);
+            // Decide how to handle the error: return an error or panic
+            // For critical applications where Redis is mandatory, you might want to panic
+            panic!("Application cannot start without Redis: {}", e);
+        }
+    };
+
+    redis_db
+        .set_value("test2", "testing2")
+        .expect("Failed to set value");
+
+    let app_data_redis = web::Data::new(redis_db);
+
     load_shop_configs(&db_sqlite_url)
         .await
         .expect("Failed to load shop configurations");
@@ -128,6 +147,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(app_data_sqlx.clone())
+            .app_data(app_data_redis.clone())
             .wrap(Logger::default())
             .wrap(AddMsg::enabled())
             .wrap(AddShopDomain::enabled())

@@ -39,6 +39,7 @@ pub mod modules {
     pub mod middleware_domain;
     pub mod middleware_msg;
     pub mod password_hash;
+    pub mod redis;
     pub mod token_pub;
 }
 
