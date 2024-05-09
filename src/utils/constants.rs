@@ -25,6 +25,8 @@ lazy_static! {
     // AWS S3 Constants
     pub static ref AWS_S3_BUCKET: String = set_aws_s3_bucket();
     pub static ref AWS_S3_REGION: String = set_aws_s3_region();
+    // Stripe Constants
+    pub static ref STRIPE_SECRET: String = set_stripe_secret();
 }
 
 pub struct EmailSettings {
@@ -121,4 +123,10 @@ fn set_aws_s3_region() -> String {
     dotenvy::dotenv().ok();
     let aws_s3_region: String = std::env::var("AWS_S3_REGION").expect("AWS_S3_REGION must be set");
     return aws_s3_region;
+}
+
+fn set_stripe_secret() -> String {
+    dotenvy::dotenv().ok();
+    let stripe_secret: String = std::env::var("STRIPE_SECRET").expect("STRIPE_SECRET must be set");
+    return stripe_secret;
 }

@@ -87,10 +87,18 @@ mod pdf_tests {
 
     #[test]
     fn test_generate_pdf_operations() {
-        let create_pdf = MyPdf::test_create_pdf_file();
-        assert_eq!(create_pdf.is_ok(), true, "PDF not created successfully");
+        let create_pdf_local = MyPdf::test_create_pdf_file();
+        assert_eq!(
+            create_pdf_local.is_ok(),
+            true,
+            "PDF not created successfully"
+        );
 
-        let create_pdf = MyPdf::test_create_pdf_in_memory();
-        assert_eq!(create_pdf.is_ok(), true, "PDF not created successfully");
+        let create_pdf_memory = MyPdf::test_create_pdf_in_memory();
+        assert_eq!(
+            create_pdf_memory.is_ok(),
+            true,
+            "PDF not created successfully"
+        );
     }
 }

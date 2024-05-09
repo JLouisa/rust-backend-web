@@ -43,6 +43,7 @@ pub mod modules {
     pub mod password_hash;
     pub mod pdf;
     pub mod redis;
+    pub mod stripe;
     pub mod token_pub;
 }
 
