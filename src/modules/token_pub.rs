@@ -1,7 +1,7 @@
 use crate::domain::datatypes::{UserCookie, UserServer};
 use crate::utils;
 use core::convert::TryFrom;
-use dotenv::dotenv;
+use dotenvy::dotenv;
 use pasetors::claims::{Claims, ClaimsValidationRules};
 use pasetors::keys::{Generate, SymmetricKey};
 use pasetors::paserk::FormatAsPaserk;

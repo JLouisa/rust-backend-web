@@ -6,7 +6,7 @@ use diesel::PgConnection;
 // Database setup
 use diesel::prelude::*;
 use diesel::r2d2::{self, ConnectionManager};
-use dotenv::dotenv;
+use dotenvy::dotenv;
 
 // Files
 use crate::models::user_model::User;

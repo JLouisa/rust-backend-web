@@ -1,5 +1,5 @@
 use actix_web::{get, middleware::Logger, web, App, HttpResponse, HttpServer, Responder};
-use dotenv::dotenv;
+use dotenvy::dotenv;
 use lib::{
     db::sqlite::SqliteDB,
     domain::shops::Shop,

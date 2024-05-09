@@ -33,12 +33,15 @@ pub mod models {
 }
 
 pub mod modules {
+    pub mod aws_s3;
     pub mod cookie;
+    pub mod cuid;
     pub mod email;
     pub mod middleware;
     pub mod middleware_domain;
     pub mod middleware_msg;
     pub mod password_hash;
+    pub mod pdf;
     pub mod redis;
     pub mod token_pub;
 }

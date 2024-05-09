@@ -22,6 +22,9 @@ lazy_static! {
     pub static ref EMAIL_PASSWORD: String = set_email_password();
     // Setup Redis Constants
     pub static ref REDIS_URL: String = set_redis_url();
+    // AWS S3 Constants
+    pub static ref AWS_S3_BUCKET: String = set_aws_s3_bucket();
+    pub static ref AWS_S3_REGION: String = set_aws_s3_region();
 }
 
 pub struct EmailSettings {
@@ -40,7 +43,7 @@ pub fn get_email_settings() -> EmailSettings {
 
 // Get the address from the .env file
 fn set_address() -> String {
-    dotenv::dotenv().ok();
+    dotenvy::dotenv().ok();
     let address: String = match std::env::var("ADDRESS") {
         Ok(the_address) => the_address.parse().expect("ADDRESS should be a string"),
         Err(_) => "127.0.0.1".to_string(),
@@ -50,7 +53,7 @@ fn set_address() -> String {
 
 // Get the port from the .env file
 fn set_port() -> u16 {
-    dotenv::dotenv().ok();
+    dotenvy::dotenv().ok();
     let port: u16 = match std::env::var("PORT") {
         Ok(the_port) => the_port.parse::<u16>().expect("PORT should be a number"),
         Err(_) => 3000,
@@ -59,51 +62,63 @@ fn set_port() -> u16 {
 }
 
 fn set_database_url() -> String {
-    dotenv::dotenv().ok();
+    dotenvy::dotenv().ok();
     let database_url: String = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     return database_url;
 }
 
 fn set_database_sqlite_url() -> String {
-    dotenv::dotenv().ok();
+    dotenvy::dotenv().ok();
     let database_url: String =
         std::env::var("DATABASE_SQLITE_URL").expect("DATABASE_SQLITE_URL must be set");
     return database_url;
 }
 
 fn set_token_secret() -> String {
-    dotenv::dotenv().ok();
+    dotenvy::dotenv().ok();
     let token_secret: String = std::env::var("TOKEN_SECRET").expect("TOKEN_SECRET must be set");
     return token_secret;
 }
 
 fn set_token_sk() -> String {
-    dotenv::dotenv().ok();
+    dotenvy::dotenv().ok();
     let token_secret: String = std::env::var("TOKEN_SK").expect("TOKEN_SK must be set");
     return token_secret;
 }
 
 fn set_smtp_host() -> String {
-    dotenv::dotenv().ok();
+    dotenvy::dotenv().ok();
     let smtp_host: String = std::env::var("SMTP_HOST").expect("SMTP_HOST must be set");
     return smtp_host;
 }
 
 fn set_email_host() -> String {
-    dotenv::dotenv().ok();
+    dotenvy::dotenv().ok();
     let email_host: String = std::env::var("EMAIL_HOST").expect("EMAIL_HOST must be set");
     return email_host;
 }
 
 fn set_email_password() -> String {
-    dotenv::dotenv().ok();
+    dotenvy::dotenv().ok();
     let email_password: String =
         std::env::var("EMAIL_PASSWORD").expect("EMAIL_PASSWORD must be set");
     return email_password;
 }
 
 fn set_redis_url() -> String {
-    dotenv::dotenv().ok();
+    dotenvy::dotenv().ok();
     let redis_url: String = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
     return redis_url;
+}
+
+fn set_aws_s3_bucket() -> String {
+    dotenvy::dotenv().ok();
+    let aws_s3_bucket: String = std::env::var("AWS_S3_BUCKET").expect("AWS_S3_BUCKET must be set");
+    return aws_s3_bucket;
+}
+
+fn set_aws_s3_region() -> String {
+    dotenvy::dotenv().ok();
+    let aws_s3_region: String = std::env::var("AWS_S3_REGION").expect("AWS_S3_REGION must be set");
+    return aws_s3_region;
 }
