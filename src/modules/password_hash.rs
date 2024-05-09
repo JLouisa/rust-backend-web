@@ -55,7 +55,7 @@ mod password_tests {
     use super::*;
 
     #[test]
-    fn check_password_good() {
+    fn check_password_hash_operations() {
         // Setup
         let password = "password123";
         let salt = SaltString::generate(&mut OsRng);
@@ -78,10 +78,7 @@ mod password_tests {
             verify_password, true,
             "Expecting Eve to be found in the list of users"
         );
-    }
 
-    #[test]
-    fn check_password_bad() {
         let password = "password12";
         let salt = SaltString::generate(&mut OsRng);
         let argon2 = Argon2::default();
@@ -100,10 +97,7 @@ mod password_tests {
             verify_password, false,
             "Expecting Eve to be found in the list of users"
         );
-    }
 
-    #[test]
-    fn check_password_real_true() {
         let password = "password123".to_string();
 
         let password_hash = "$argon2id$v=19$m=19456,t=2,p=1$+Gn22CB2y5j1xeMh/COeuw$hFhJ2ORLPXui2BlumrMjFV0fNiVADzOuswFvO/6BvEw".to_string();
@@ -122,10 +116,7 @@ mod password_tests {
             answer, true,
             "Expecting Eve to be found in the list of users"
         );
-    }
 
-    #[test]
-    fn check_password_real_false() {
         let password = "password12".to_string();
 
         let password_hash = "$argon2id$v=19$m=19456,t=2,p=1$+Gn22CB2y5j1xeMh/COeuw$hFhJ2ORLPXui2BlumrMjFV0fNiVADzOuswFvO/6BvEw".to_string();

@@ -101,8 +101,8 @@ async fn main() -> std::io::Result<()> {
     let app_data_sqlx = web::Data::new(database_sqlx);
 
     // Setup Redis Connection
-    let redis_url = utils::constants::REDIS_URL.clone();
-    let mut redis_db = match RedisDB::new(&redis_url) {
+    let redis_url = crate::utils::constants::REDIS_URL.clone();
+    let redis_db = match RedisDB::new(&redis_url) {
         Ok(db) => db,
         Err(e) => {
             eprintln!("Failed to connect to Redis: {}", e);
@@ -112,10 +112,6 @@ async fn main() -> std::io::Result<()> {
         }
     };
 
-    redis_db
-        .set_value("test2", "testing2")
-        .expect("Failed to set value");
-
     let app_data_redis = web::Data::new(redis_db);
 
     load_shop_configs(&db_sqlite_url)
@@ -123,6 +119,7 @@ async fn main() -> std::io::Result<()> {
         .expect("Failed to load shop configurations");
 
     {
+        // Should go in Redis - need to connect user to shop
         let mut configs = SHOP_CONFIGS.lock().unwrap();
         configs.insert(
             "localhost:3000".to_string(),
