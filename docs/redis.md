@@ -1,6 +1,10 @@
-# Start Redis
+# Create Redis Docker
 
 $ docker run --name my-redis -p 6379:6379 -d redis
+
+## Start Redis
+
+$ docker start 6144f1db6b61
 
 ## See all Docker containers
 

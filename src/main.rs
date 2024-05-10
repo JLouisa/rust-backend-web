@@ -1,5 +1,8 @@
-use actix_web::{get, middleware::Logger, web, App, HttpResponse, HttpServer, Responder};
-use dotenvy::dotenv;
+use crate::utils::constants::SHOP_CONFIGS;
+use actix_web::{
+    get, middleware::Logger, post, web, App, HttpRequest, HttpResponse, HttpServer, Responder,
+};
+use env_logger::Env;
 use lib::{
     db::sqlite::SqliteDB,
     domain::shops::Shop,
@@ -9,14 +12,14 @@ use lib::{
         middleware_domain::AddShopDomain, // middleware_domain::ShopLoader
         middleware_msg::AddMsg,
         redis::RedisDB,
+        stripe::stripe_webhooks::handle_webhook,
     },
     routes::{app_routes, root_routes, ui_routes, users_routes},
     utils,
+    utils::constants::Config,
 };
 use serde::Serialize;
 use sqlx::migrate::MigrateDatabase;
-
-use crate::utils::constants::SHOP_CONFIGS;
 
 // #[macro_use]
 // extern crate diesel_migrations;
@@ -35,12 +38,11 @@ async fn health() -> impl Responder {
     })
 }
 
-// async fn not_found_error() -> HttpResponse {
-//     HttpResponse::NotFound().json(Response {
-//         status: "error".to_string(),
-//         message: "Not Found".to_string(),
-//     })
-// }
+#[post("/stripe_webhooks")]
+async fn webhook_handler(req: HttpRequest, payload: web::Bytes) -> HttpResponse {
+    handle_webhook(req, payload).unwrap();
+    HttpResponse::Ok().finish()
+}
 
 async fn load_shop_configs(database_url: &str) -> Result<(), sqlx::Error> {
     let pool = SqliteDB::new(database_url).await;
@@ -69,66 +71,64 @@ async fn load_shop_configs(database_url: &str) -> Result<(), sqlx::Error> {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    if std::env::var_os("RUST_LOG").is_none() {
-        std::env::set_var("RUST_LOG", "actix_web=info");
-    }
+    // Logging
+    env_logger::init_from_env(Env::default().default_filter_or("info"));
 
-    // Load environment variables from .env file
-    dotenv().expect(".env file not found");
-    env_logger::init();
-    let port: u16 = utils::constants::PORT.clone();
-    let address: String = utils::constants::ADDRESS.clone();
-    let db_sqlite_url: String = utils::constants::DATABASE_SQLITE_URL.clone();
+    // Load Configuration
+    let config = Config::load_configuration();
 
     // Setup Database Connection for Diesel
     // let db_connection = db::database::Database::new();
     // let app_data_pg = web::Data::new(db_connection);
 
     // Setup Database Connection for SQLX
-    if !sqlx::Sqlite::database_exists(&db_sqlite_url)
+    if !sqlx::Sqlite::database_exists(&config.sqlx_database_url)
         .await
         .expect("Something wrong 1")
     {
-        let _ = sqlx::Sqlite::create_database(&db_sqlite_url).await;
-
-        match create_schema(&db_sqlite_url).await {
-            Ok(_) => println!("Database created Sucessfully"),
-            Err(e) => panic!("{}", e),
+        if create_schema(&config.sqlx_database_url).await.is_ok() {
+            log::info!("Database created Sucessfully");
+        } else {
+            log::warn!("Failed to create database schema");
+            panic!();
         }
     }
-
-    let database_sqlx = SqliteDB::new(&db_sqlite_url).await;
+    let database_sqlx = SqliteDB::new(&config.sqlx_database_url).await;
     let app_data_sqlx = web::Data::new(database_sqlx);
+    log::info!(
+        "Sqlx Database pool created Sucessfully at {}",
+        &&config.sqlx_database_url
+    );
 
     // Setup Redis Connection
-    let redis_url = crate::utils::constants::REDIS_URL.clone();
-    let redis_db = match RedisDB::new(&redis_url) {
+    let redis_db = match RedisDB::new(&config.redis_url) {
         Ok(db) => db,
         Err(e) => {
-            eprintln!("Failed to connect to Redis: {}", e);
-            // Decide how to handle the error: return an error or panic
-            // For critical applications where Redis is mandatory, you might want to panic
-            panic!("Application cannot start without Redis: {}", e);
+            log::warn!(
+                "Failed to connect to Redis. Application cannot start without Redis: {}",
+                e
+            );
+            panic!("Failed to connect to Redis");
         }
     };
-
     let app_data_redis = web::Data::new(redis_db);
+    log::info!("Redis connection Sucessfull at {}", &&config.redis_url);
 
-    load_shop_configs(&db_sqlite_url)
+    load_shop_configs(&config.sqlx_database_url)
         .await
         .expect("Failed to load shop configurations");
 
     {
         // Should go in Redis - need to connect user to shop
-        let mut configs = SHOP_CONFIGS.lock().unwrap();
-        configs.insert(
+        let mut shop_cfg = SHOP_CONFIGS.lock().unwrap();
+        shop_cfg.insert(
             "localhost:3000".to_string(),
             Shop {
                 name: "Localhost Shop".to_string(),
                 product_type: "Localhost Product".to_string(),
             },
         );
-        configs.insert(
+        shop_cfg.insert(
             "honeydragons.com".to_string(),
             Shop {
                 name: "honeydragons Shop".to_string(),
@@ -138,7 +138,7 @@ async fn main() -> std::io::Result<()> {
     }
 
     // Log the server start
-    log::info!("starting HTTP server at http://localhost:{}", &port);
+    log::info!("Starting HTTP server at http://localhost:{}", &config.port);
 
     // Start the server
     HttpServer::new(move || {
@@ -146,18 +146,18 @@ async fn main() -> std::io::Result<()> {
             .app_data(app_data_sqlx.clone())
             .app_data(app_data_redis.clone())
             .wrap(Logger::default())
-            .wrap(AddMsg::enabled())
+            .wrap(AddMsg::enabled()) // Test middleware
             .wrap(AddShopDomain::enabled())
-            .wrap(middleware::CheckLogin::enabled())
+            .wrap(middleware::CheckLogin::disabled())
+            .service(health)
+            .service(webhook_handler)
             .configure(app_routes::app_config)
             .configure(ui_routes::ui_config)
             .configure(users_routes::users_config)
             .configure(root_routes::root_config)
             .service(root_routes::root::index_page)
-            .service(health)
-        // .default_service(not_found_error())
     })
-    .bind((address, port))?
+    .bind((config.address, config.port))?
     .run()
     .await
 }

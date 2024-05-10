@@ -4,29 +4,55 @@ use std::sync::Mutex;
 
 use crate::domain::shops::Shop;
 
+#[macro_export]
+macro_rules! load_settings {
+    // Variant for only key
+    ($key:expr) => {{
+        dotenvy::dotenv().ok(); // Load .env file if present
+        std::env::var($key).expect(&format!("{} should be set", $key))
+    }};
+    // Variant for key with a default value
+    ($key:expr, $default:expr) => {{
+        dotenvy::dotenv().ok(); // Load .env file if present
+        std::env::var($key).unwrap_or_else(|_| $default.to_string())
+    }};
+    // Variant for key with a default value that's an u16
+    ($key:expr, $default:expr, u16) => {{
+        dotenvy::dotenv().ok(); // Load .env file if present
+        std::env::var($key)
+            .unwrap_or_else(|_| $default.to_string())
+            .parse::<u16>()
+            .expect("Expected a number")
+    }};
+}
+
 lazy_static! {
     // Setup Server Constants
-    pub static ref ADDRESS: String = set_address();
-    pub static ref PORT: u16 = set_port();
+    pub static ref ADDRESS: String = load_settings!("ADDRESS", "127.0.0.1");
+    pub static ref PORT: u16 = load_settings!("PORT", 3000).parse().expect("Port is not a number");
     // Setup Database Constants
-    pub static ref DATABASE_URL: String = set_database_url();
-    pub static ref DATABASE_SQLITE_URL: String = set_database_sqlite_url();
+    pub static ref DATABASE_URL: String = load_settings!("DATABASE_URL");
+    pub static ref DATABASE_SQLITE_URL: String = load_settings!("DATABASE_SQLITE_URL");
     // Setup Token Constants
-    pub static ref TOKEN_SECRET: String = set_token_secret();
-    pub static ref TOKEN_SK: String = set_token_sk();
+    pub static ref TOKEN_SECRET: String = load_settings!("TOKEN_SECRET");
+    pub static ref TOKEN_SK: String = load_settings!("TOKEN_SK");
+    // Setup Email Constants
+    pub static ref SMTP_HOST: String = load_settings!("SMTP_HOST");
+    pub static ref EMAIL_HOST: String = load_settings!("EMAIL_HOST");
+    pub static ref EMAIL_PASSWORD: String = load_settings!("EMAIL_PASSWORD");
+    // Setup Redis Constants
+    pub static ref REDIS_URL: String = load_settings!("REDIS_URL");
+    // AWS S3 Constants
+    pub static ref UPLOAD_SERVICE: String = load_settings!("UPLOAD_SERVICE");
+    pub static ref AWS_ACCESS_KEY_ID: String = load_settings!("AWS_ACCESS_KEY_ID");
+    pub static ref AWS_ACCESS_SECRET_KEY: String = load_settings!("AWS_ACCESS_SECRET_KEY");
+    pub static ref AWS_REGION: String = load_settings!("AWS_REGION");
+    pub static ref AWS_BUCKET_NAME: String = load_settings!("AWS_BUCKET_NAME");
+    // Stripe Constants
+    pub static ref STRIPE_SECRET: String = load_settings!("STRIPE_SECRET");
+    pub static ref STRIPE_WEBHOOK_SECRET: String = load_settings!("STRIPE_WEBHOOK_SECRET");
     // Setup Shop Configurations
     pub static ref SHOP_CONFIGS: Mutex<HashMap<String, Shop>> = Mutex::new(HashMap::new());
-    // Setup Email Constants
-    pub static ref SMTP_HOST: String = set_smtp_host();
-    pub static ref EMAIL_HOST: String = set_email_host();
-    pub static ref EMAIL_PASSWORD: String = set_email_password();
-    // Setup Redis Constants
-    pub static ref REDIS_URL: String = set_redis_url();
-    // AWS S3 Constants
-    pub static ref AWS_S3_BUCKET: String = set_aws_s3_bucket();
-    pub static ref AWS_S3_REGION: String = set_aws_s3_region();
-    // Stripe Constants
-    pub static ref STRIPE_SECRET: String = set_stripe_secret();
 }
 
 pub struct EmailSettings {
@@ -43,90 +69,22 @@ pub fn get_email_settings() -> EmailSettings {
     }
 }
 
-// Get the address from the .env file
-fn set_address() -> String {
-    dotenvy::dotenv().ok();
-    let address: String = match std::env::var("ADDRESS") {
-        Ok(the_address) => the_address.parse().expect("ADDRESS should be a string"),
-        Err(_) => "127.0.0.1".to_string(),
-    };
-    return address;
+pub struct Config {
+    pub address: String,
+    pub port: u16,
+    pub sqlx_database_url: String,
+    pub redis_url: String,
 }
 
-// Get the port from the .env file
-fn set_port() -> u16 {
-    dotenvy::dotenv().ok();
-    let port: u16 = match std::env::var("PORT") {
-        Ok(the_port) => the_port.parse::<u16>().expect("PORT should be a number"),
-        Err(_) => 3000,
-    };
-    return port;
-}
+impl Config {
+    pub fn load_configuration() -> Self {
+        dotenvy::dotenv().expect(".env file not found");
 
-fn set_database_url() -> String {
-    dotenvy::dotenv().ok();
-    let database_url: String = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    return database_url;
-}
-
-fn set_database_sqlite_url() -> String {
-    dotenvy::dotenv().ok();
-    let database_url: String =
-        std::env::var("DATABASE_SQLITE_URL").expect("DATABASE_SQLITE_URL must be set");
-    return database_url;
-}
-
-fn set_token_secret() -> String {
-    dotenvy::dotenv().ok();
-    let token_secret: String = std::env::var("TOKEN_SECRET").expect("TOKEN_SECRET must be set");
-    return token_secret;
-}
-
-fn set_token_sk() -> String {
-    dotenvy::dotenv().ok();
-    let token_secret: String = std::env::var("TOKEN_SK").expect("TOKEN_SK must be set");
-    return token_secret;
-}
-
-fn set_smtp_host() -> String {
-    dotenvy::dotenv().ok();
-    let smtp_host: String = std::env::var("SMTP_HOST").expect("SMTP_HOST must be set");
-    return smtp_host;
-}
-
-fn set_email_host() -> String {
-    dotenvy::dotenv().ok();
-    let email_host: String = std::env::var("EMAIL_HOST").expect("EMAIL_HOST must be set");
-    return email_host;
-}
-
-fn set_email_password() -> String {
-    dotenvy::dotenv().ok();
-    let email_password: String =
-        std::env::var("EMAIL_PASSWORD").expect("EMAIL_PASSWORD must be set");
-    return email_password;
-}
-
-fn set_redis_url() -> String {
-    dotenvy::dotenv().ok();
-    let redis_url: String = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
-    return redis_url;
-}
-
-fn set_aws_s3_bucket() -> String {
-    dotenvy::dotenv().ok();
-    let aws_s3_bucket: String = std::env::var("AWS_S3_BUCKET").expect("AWS_S3_BUCKET must be set");
-    return aws_s3_bucket;
-}
-
-fn set_aws_s3_region() -> String {
-    dotenvy::dotenv().ok();
-    let aws_s3_region: String = std::env::var("AWS_S3_REGION").expect("AWS_S3_REGION must be set");
-    return aws_s3_region;
-}
-
-fn set_stripe_secret() -> String {
-    dotenvy::dotenv().ok();
-    let stripe_secret: String = std::env::var("STRIPE_SECRET").expect("STRIPE_SECRET must be set");
-    return stripe_secret;
+        Config {
+            address: ADDRESS.clone(),
+            port: PORT.clone(),
+            sqlx_database_url: DATABASE_SQLITE_URL.clone(),
+            redis_url: REDIS_URL.clone(),
+        }
+    }
 }

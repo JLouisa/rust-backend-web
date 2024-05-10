@@ -1,5 +1,7 @@
 use redis::aio::MultiplexedConnection;
+use redis::AsyncCommands;
 use redis::{Client, Commands, RedisError};
+use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
 #[derive(Debug, thiserror::Error)]
@@ -13,19 +15,32 @@ pub enum RedisKeyNames {
     Verification,
     Session,
     User,
-    Shop,
+    Shops,
     Cart,
     Stack,
     Queue,
 }
 impl RedisKeyNames {
+    pub fn get_key(&self, domain: &str) -> String {
+        match self {
+            RedisKeyNames::PasswordReset => format!("password_reset:{}", domain),
+            RedisKeyNames::Verification => format!("verification:{}", domain),
+            RedisKeyNames::Session => format!("session:{}", domain),
+            RedisKeyNames::User => format!("user:{}", domain),
+            RedisKeyNames::Shops => format!("shop:{}", domain),
+            RedisKeyNames::Cart => format!("cart:{}", domain),
+            RedisKeyNames::Stack => format!("stack:{}", domain),
+            RedisKeyNames::Queue => format!("queue:{}", domain),
+        }
+    }
+
     pub fn as_str(&self) -> &str {
         match self {
             RedisKeyNames::PasswordReset => "password_reset",
             RedisKeyNames::Verification => "verification",
             RedisKeyNames::Session => "session",
             RedisKeyNames::User => "user",
-            RedisKeyNames::Shop => "shop",
+            RedisKeyNames::Shops => "shop",
             RedisKeyNames::Cart => "cart",
             RedisKeyNames::Stack => "stack",
             RedisKeyNames::Queue => "queue",
@@ -33,18 +48,62 @@ impl RedisKeyNames {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Shop {
+    domain: String,
+    user_id: String,
+    shop_name: String,
+    product_type: String,
+}
+
 pub struct RedisDbAsync {
     pub client: MultiplexedConnection,
 }
 
 impl RedisDbAsync {
+    // Create Redis Client
     pub async fn new_async(db_redis_url: &str) -> Result<Self, RedisDbError> {
-        let con = Client::open(db_redis_url).map_err(RedisDbError::from)?;
+        let con: Client = Client::open(db_redis_url).map_err(RedisDbError::from)?;
         let client = con
             .get_multiplexed_tokio_connection()
             .await
             .map_err(RedisDbError::from)?;
         Ok(RedisDbAsync { client })
+    }
+
+    // Set a value for shop
+    pub async fn set_shop_config(&mut self, shop: &Shop) -> Result<(), RedisDbError> {
+        let key: &str = RedisKeyNames::Shops.as_str();
+        let field: String = RedisKeyNames::Shops.get_key(&shop.domain);
+        let value: String = serde_json::to_string(shop).unwrap();
+        self.client.hset(key, field, value).await?;
+        Ok(())
+    }
+
+    // Set a value for shop for multiple fields
+    pub async fn set_shop_config_multi(&mut self, shop: &Shop) -> Result<(), RedisDbError> {
+        let key: String = RedisKeyNames::Shops.get_key(&shop.domain);
+        self.client
+            .hset_multiple(
+                key,
+                &[
+                    ("domain", shop.domain.as_str()),
+                    ("user_id", shop.user_id.as_str()),
+                    ("shop_name", shop.shop_name.as_str()),
+                    ("product_type", shop.product_type.as_str()),
+                ],
+            )
+            .await?;
+        Ok(())
+    }
+
+    // Get a value for shop
+    pub async fn get_shop_config(&mut self, domain: &str) -> Result<Shop, RedisDbError> {
+        let key = RedisKeyNames::Shops.get_key(domain);
+        let field = RedisKeyNames::Shops.as_str();
+        let result: String = self.client.hget(key, field).await?;
+        let result: Shop = serde_json::from_str(&result).unwrap();
+        Ok(result)
     }
 }
 
@@ -419,5 +478,49 @@ mod redis_tests {
         // // Ensure the queue is empty
         // let none: Option<String> = redis_db.dequeue("myqueue").expect("Failed to dequeue item");
         // assert!(none.is_none(), "Queue should be empty");
+    }
+
+    #[tokio::test]
+    async fn test_redis_shop_setup() {
+        let mut client =
+            RedisDbAsync::new_async(crate::utils::constants::REDIS_URL.clone().as_str())
+                .await
+                .unwrap();
+
+        let new_shop = Shop {
+            domain: "example.com".to_string(),
+            user_id: "abcdef12345".to_string(),
+            shop_name: "The Example Shop".to_string(),
+            product_type: "Books".to_string(),
+        };
+
+        let new_shop2 = Shop {
+            domain: "honeydragons.com".to_string(),
+            user_id: "abcdef12345".to_string(),
+            shop_name: "The Honeydragons Shop".to_string(),
+            product_type: "Books".to_string(),
+        };
+
+        let new_shop3 = Shop {
+            domain: "lafleur.com".to_string(),
+            user_id: "abcdef12345".to_string(),
+            shop_name: "The Lafleur Shop".to_string(),
+            product_type: "Books".to_string(),
+        };
+
+        let set_shop = client.set_shop_config(&new_shop).await;
+        let set_shop2 = client.set_shop_config(&new_shop2).await;
+        let set_shop3 = client.set_shop_config(&new_shop3).await;
+
+        assert!(set_shop.is_ok(), "Set shop config failed");
+        assert!(set_shop2.is_ok(), "Set shop2 config failed");
+        assert!(set_shop3.is_ok(), "Set shop3 config failed");
+
+        let get_shop = client
+            .get_shop_config("example.com")
+            .await
+            .expect("Get shop config");
+
+        assert_eq!(get_shop.domain, new_shop.domain, "Domain does not match");
     }
 }
